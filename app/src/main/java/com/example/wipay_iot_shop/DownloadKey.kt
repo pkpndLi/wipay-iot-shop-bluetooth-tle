@@ -106,6 +106,9 @@ class DownloadKey : AppCompatActivity() {
         val rsa_primod = sp.getString("rsa_privatekey_mod",null)
         val rsa_priexp = sp.getString("rsa_privatekey_exp",null)
 
+        val DEK = sp.getString("DEK",null)
+        val MAK = sp.getString("MAK",null)
+
         var ltmkBtn = findViewById<Button>(R.id.ltmkBtn)
         var ltwkBtn = findViewById<Button>(R.id.ltwkBtn)
         var btn_genRSA = findViewById<Button>(R.id.btn_genRSA)
@@ -114,6 +117,8 @@ class DownloadKey : AppCompatActivity() {
             Settings.Secure.ANDROID_ID
         )
 
+        Log.e(log,"DEK :: "+DEK)
+        Log.e(log,"MAK :: "+MAK)
 
         Log.i(log,"privateKey.modulus = "+rsa_primod)
         Log.i(log,"privateKey.privateExponent = "+rsa_priexp)
@@ -283,17 +288,34 @@ class DownloadKey : AppCompatActivity() {
                 setNormalDialog("","Download Working Key Success.")
                 var bit62Msg = codeUnpack(responseMsg,62).toString()
                 Log.e(log,"bit62: " + bit62Msg)
-                var DEK : ByteArray? = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eDEK(bit62Msg)))
-                var MAK : ByteArray? = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eMAK(bit62Msg)))
-                var KCV_MAK = if (get_KCV_DEK(bit62Msg)==dataConverter.HexByteToHexString(des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"), "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
 
-                get_KCV_DEK(bit62Msg)
-                get_KCV_MAK(bit62Msg)
-                get_eDEK(bit62Msg)
-                get_eMAK(bit62Msg)
 
-                Log.w(log,"test get_KCV_DEK func: " + get_KCV_DEK(bit62Msg))
-                Log.w(log,"test get_KCV_MAK func: " + get_KCV_MAK(bit62Msg))
+
+                var DEK = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eDEK(bit62Msg)))
+                var MAK = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eMAK(bit62Msg)))
+                var KCV_MAK = if (get_KCV_DEK(bit62Msg)==dataConverter.HexByteToHexString(des.enDESede(MAK, "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
+                var KCV_DEK = if (get_KCV_MAK(bit62Msg)==dataConverter.HexByteToHexString(des.enDESede(DEK, "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
+                if (KCV_MAK&&KCV_DEK){
+                    Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+                    Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+                    Log.w(log,"test get_KCV_MAK func: " + get_KCV_MAK(bit62Msg))
+                    Log.w(log,"test get_KCV_DEK func: " + get_KCV_DEK(bit62Msg))
+
+                    val editor: SharedPreferences.Editor = sp.edit()
+                    editor.putString("DEK", dataConverter.HexByteToHexString(DEK))
+                    editor.putString("MAK", dataConverter.HexByteToHexString(MAK))
+                    editor.commit()
+                }
+//                get_KCV_DEK(bit62Msg)
+//                get_KCV_MAK(bit62Msg)
+//                get_eDEK(bit62Msg)
+//                get_eMAK(bit62Msg)
+//
+//                Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+//                Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+//                Log.w(log,"test get_KCV_MAK func: " + get_KCV_MAK(bit62Msg))
+//                Log.w(log,"test get_KCV_DEK func: " + get_KCV_DEK(bit62Msg))
+
 
                 ltwkState = false
             }
@@ -332,7 +354,6 @@ class DownloadKey : AppCompatActivity() {
             .setHeader("6001268001")
             .build()
     }
-
     private fun ltmkPacket(): ISOMessage {
         return ISOMessageBuilder.Packer(VERSION.V1987)
             .networkManagement()
@@ -398,21 +419,19 @@ class DownloadKey : AppCompatActivity() {
 
     fun get_KCV_MAK(bit62:String):String?{
         val kcv = bit62.substring(86,102).toUpperCase()
-        return kcv//hexToString(kcv)
+        return hexToString(kcv)
     }
     fun get_KCV_DEK(bit62:String):String?{
         val kcv = bit62.substring(102,118).toUpperCase()
-        return kcv//hexToString(kcv)
+        return hexToString(kcv)
     }
     fun get_eDEK(bit62:String):String?{
-
-
-        return null
+        val dek = bit62.substring(22,54).toUpperCase()
+        return dek
     }
     fun get_eMAK(bit62:String):String?{
-
-
-        return null
+        val mak = bit62.substring(54,86).toUpperCase()
+        return mak
     }
 
 

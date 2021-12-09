@@ -1,7 +1,5 @@
 package com.example.wipay_iot_shop.cypto;
 
-import java.nio.charset.StandardCharsets;
-
 public class DataConverter {
 
     public String HexByteToHexString(byte[] hexByte){
@@ -17,7 +15,7 @@ public class DataConverter {
 
     public byte[] HexString2HexByte(String hexString)
     {
-        String str = ((hexString.length()%2)!=0)?("0".concat(hexString)):hexString;
+        String str = hexString;
         byte[] hex=null;
         byte[] tmp=null;
         byte c = 0x00;
@@ -50,11 +48,6 @@ public class DataConverter {
             }
         }
         return hex;
-    }
-
-    public String hexByte2String(byte[] bytes){
-        String s = new String(bytes, StandardCharsets.UTF_8);
-        return s;
     }
 
 }
