@@ -31,7 +31,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Wipayiotshop">
         <activity
-            android:name=".DownloadKey"
+            android:name=".FunctionTest"
             android:exported="true" >
 <!--            <intent-filter>-->
 <!--                <action android:name="android.intent.action.MAIN" />-->
@@ -39,7 +39,7 @@
 <!--            </intent-filter>-->
         </activity>
         <activity
-            android:name=".FunctionTest"
+            android:name=".DownloadKey"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

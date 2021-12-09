@@ -1,6 +1,7 @@
 package com.example.wipay_iot_shop
 
 import android.content.DialogInterface
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Settings
@@ -10,6 +11,8 @@ import androidx.appcompat.app.AlertDialog
 import com.example.testpos.database.transaction.AppDatabase
 import com.example.testpos.database.transaction.SaleDao
 import com.example.testpos.evenbus.data.MessageEvent
+import com.example.wipay_iot_shop.cypto.DataConverter
+import com.example.wipay_iot_shop.cypto.iRSA
 import com.example.wipay_iot_shop.transaction.ResponseDao
 import com.imohsenb.ISO8583.builders.ISOClientBuilder
 import com.imohsenb.ISO8583.builders.ISOMessageBuilder
@@ -26,16 +29,26 @@ import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import java.io.IOException
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
+import java.security.*
+import java.security.spec.InvalidKeySpecException
+import java.sql.DriverManager
 import java.util.*
+import javax.crypto.BadPaddingException
+import javax.crypto.IllegalBlockSizeException
+import javax.crypto.NoSuchPaddingException
 import kotlin.experimental.and
+import android.preference.PreferenceManager
+import com.example.wipay_iot_shop.cypto.iDES
+import java.security.interfaces.RSAPrivateKey
+
 
 class DownloadKey : AppCompatActivity() {
 
     var appDatabase : AppDatabase? = null
     var saleDAO : SaleDao? = null
     var responseDAO : ResponseDao? = null
-
+    private lateinit var sp: SharedPreferences
+    private val MY_PREFS = "my_prefs"
     var log = "log"
     var indicator = "HTLE"
     var version = "04"
@@ -46,10 +59,9 @@ class DownloadKey : AppCompatActivity() {
     var vendorID = "12000002"
     var stan:Int = 7
     var TE_ID = "12002002"
-    var rsaExp = "010001"
-    var rsaMod = "8ED7581EA546985DCE653209B5239472B8B6789AB8B4A2E25E8E9F2BECAE8B708FFE62255755FD522BAA39AF5FA0AFF6E75503AD7C051C4AA752FED146D2BC31DCC6C52BA6CE1660FF84496FAFE8FAEDC66EF4475DB087F56EC430B43746A1D8BD9E86BC0BCEEAA1372632B4FEAA245D6ABD1D15EB5B37F669496550082D2613E2FB21BF59EF65202E4732152DEF5284D3227E8A2FAAC1787ECE93A8319C515E272AF35DE6063686AC6E304D44EF4D04BE73C3AF5BDAB32B65E51A8AD3A3E82E70903C3CBB6071254A57586725A08BA8EC2ABCA46D761C8747C0315F076BDE2698F73AF317015566B7F84A267D5230EDD35A05DA2198D8F900A9F65CEC89F7B5"
+
     var TE_PIN = "22222222"
-    var keyIdLtmk = "1369"
+    var keyIdLtmk = "6298"
     var keyKCVltmk = ""
     var ltwkId = "0000"
     var tid = "22222222"
@@ -66,7 +78,8 @@ class DownloadKey : AppCompatActivity() {
     var ltmkState:Boolean = false
     var ltwkState:Boolean = false
 
-    private val HOST = "192.168.58.89"
+
+    private val HOST = "223.27.234.243"
     var PORT = 5000
 
     //    private val HOST = "192.168.43.24"
@@ -75,18 +88,49 @@ class DownloadKey : AppCompatActivity() {
     private val HEX_UPPER = "0123456789ABCDEF".toCharArray()
     private val HEX_LOWER = "0123456789abcdef".toCharArray()
 
+
+//    val rsa: iRSA? = null
+//    val dataConverter : DataConverter? = null
+
+    val rsa = iRSA()
+    val des = iDES()
+    val dataConverter = DataConverter()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_download_key)
 
+        sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
+        val rsa_pubmod = sp.getString("rsa_publickey_mod",null)
+        val rsa_pubexp = sp.getString("rsa_pubblickey_exp",null)
+        val rsa_primod = sp.getString("rsa_privatekey_mod",null)
+        val rsa_priexp = sp.getString("rsa_privatekey_exp",null)
+
+        val DEK = sp.getString("DEK",null)
+        val MAK = sp.getString("MAK",null)
+
         var ltmkBtn = findViewById<Button>(R.id.ltmkBtn)
         var ltwkBtn = findViewById<Button>(R.id.ltwkBtn)
+        var btn_genRSA = findViewById<Button>(R.id.btn_genRSA)
         var androidId: String = Settings.Secure.getString(
             contentResolver,
             Settings.Secure.ANDROID_ID
         )
 
-        LTID = androidId
+        Log.e(log,"DEK :: "+DEK)
+        Log.e(log,"MAK :: "+MAK)
+
+        Log.i(log,"privateKey.modulus = "+rsa_primod)
+        Log.i(log,"privateKey.privateExponent = "+rsa_priexp)
+        Log.i(log,"publicKey.modulus = "+rsa_pubmod)
+        Log.i(log,"publicKey.publicExponent = "+rsa_pubexp)
+
+        Log.i(log,"privateKey.modulus = "+rsa_primod)
+        Log.i(log,"privateKey.privateExponent = "+rsa_priexp)
+        Log.i(log,"publicKey.modulus = "+rsa_pubmod)
+        Log.i(log,"publicKey.publicExponent = "+rsa_pubexp)
+
+//        LTID = androidId
 
         val unpadded = "7"
         val padded = "000000".substring(unpadded.length) + unpadded
@@ -94,23 +138,88 @@ class DownloadKey : AppCompatActivity() {
         Log.e(log,"test pedding: " + padded)
         Log.w(log,"test hexToString func." + hexToString("0018496E76616C69642056656E646F725F49442E"))
 
+<<<<<<< HEAD
         Log.w(log,"bit62 to hex: " + hexToString("014D6080010126081020380100028000049700000000012342061115012030303232323232323232029348544C453034343131323047B4B7BB813C3E00ADB1D9F7D05BE635CE2EA36E29152899E4F665EA4F6C3C769AD14E1BAF0858B9034E3C234AE165BE5DC81FF83D6D0C61991F081840A18CDB02803569FB33B05C0FD30CD85E0DF9F4C1D5753AAE7F3FE839A3450721C3E53BDD5F7173221A21D91FAD2FCBC718A7366118F008D3B67685F8192EA64AF776296B93A1969D41E96B52286DAE9C7DB36B01A6FE757DF43B53A5F6158E0120648E915A7DAF9AEF25992D93F74932D0A33DFE615F7F9E387EAA5C76133B8611E12914DDCD3F948F26342933CEDE5C495335C5A1E8E40E00B846960BAA3AC3F1355C3F3EC574629CC0DF3A82C2438F5781BB5B9CF2B1CC7313AEF46DD824620C826E3030364230373231343720202020202020202020202020202020"))
         var getKeyIdMsg = getKeyId("48544c45303434313132304dab11d7ba05376fab31bec7a1f5b030829949333d5435789d22a62930c7f07dd8a8270d518ec85460b61af42cac847bb4c4650c04d6a786f422b880b05126ceb092ec5d155ba9e88470b366ead10ce1a5c6a53dcf811eac713b4fd0dc26b07bd981a5365ae59f4ce1ddbba1c953af25261646c60ea15a6766428afc86d435bf42c4fed0aad732fd4c9859adee2d9855b1abcc4a52f102ee57e6dae57692f14944a2f35ed8a8527e78ebfe1d72995cde4a7b4432bc208e030c3dccef7972db1f7d5bf5600238802cbd756aba3050e0f76eb0f861229b0ab238b0c61a969e2c10bf9b9d02b1bdd2ec01fa043af458a8a7fc67b287d0d4e372f95283fe62805db23646463431443136303520202020202020202020202020202020")
         var getKeyKCVMsg = getKeyKCV("48544c45303434313132304dab11d7ba05376fab31bec7a1f5b030829949333d5435789d22a62930c7f07dd8a8270d518ec85460b61af42cac847bb4c4650c04d6a786f422b880b05126ceb092ec5d155ba9e88470b366ead10ce1a5c6a53dcf811eac713b4fd0dc26b07bd981a5365ae59f4ce1ddbba1c953af25261646c60ea15a6766428afc86d435bf42c4fed0aad732fd4c9859adee2d9855b1abcc4a52f102ee57e6dae57692f14944a2f35ed8a8527e78ebfe1d72995cde4a7b4432bc208e030c3dccef7972db1f7d5bf5600238802cbd756aba3050e0f76eb0f861229b0ab238b0c61a969e2c10bf9b9d02b1bdd2ec01fa043af458a8a7fc67b287d0d4e372f95283fe62805db23646463431443136303520202020202020202020202020202020")
         Log.w(log,"test getKeyId func: " + getKeyIdMsg)
         Log.w(log,"test getKeyKCV func: " + getKeyKCVMsg)
+=======
+        btn_genRSA.setOnClickListener {
+>>>>>>> af0b185e45540d8c395337fe4e6387d21edb9b22
 
+            var rsa_privatekey_mod :String?=null
+            var rsa_privatekey_exp :String?=null
+            var rsa_publickey_mod :String?=null
+            var rsa_pubblickey_exp :String?=null
+
+            try {
+                rsa.genKeyPair(2048)
+
+                rsa_privatekey_mod = rsa.privateKey.modulus.toString(16).toUpperCase()
+                rsa_privatekey_exp = rsa.privateKey.privateExponent.toString(16).toUpperCase()
+                rsa_publickey_mod = rsa.publicKey.modulus.toString(16).toUpperCase()
+                rsa_pubblickey_exp = rsa.publicKey.publicExponent.toString(16).toUpperCase()
+
+                rsa_privatekey_mod = if (rsa_privatekey_mod.length%2!=0) '0'+rsa_privatekey_mod else rsa_privatekey_mod
+                rsa_privatekey_exp = if (rsa_privatekey_exp.length%2!=0) '0'+rsa_privatekey_exp else rsa_privatekey_exp
+                rsa_publickey_mod = if (rsa_publickey_mod.length%2!=0) '0'+rsa_publickey_mod else rsa_publickey_mod
+                rsa_pubblickey_exp = if (rsa_pubblickey_exp.length%2!=0) '0'+rsa_pubblickey_exp else rsa_pubblickey_exp
+
+                val editor: SharedPreferences.Editor = sp.edit()
+                editor.putString("rsa_privatekey_mod", rsa_privatekey_mod)
+                editor.putString("rsa_privatekey_exp", rsa_privatekey_exp)
+                editor.putString("rsa_publickey_mod", rsa_publickey_mod)
+                editor.putString("rsa_publickey_exp", rsa_pubblickey_exp)
+                editor.commit()
+
+                Log.i(log,"privateKey.modulus = "+rsa_privatekey_mod)
+                Log.i(log,"privateKey.privateExponent = "+rsa_privatekey_exp)
+                Log.i(log,"publicKey.modulus = "+rsa_publickey_mod)
+                Log.i(log,"publicKey.publicExponent = "+rsa_pubblickey_exp)
+
+            } catch (e: InvalidParameterException) {
+                e.printStackTrace()
+            } catch (e: NoSuchAlgorithmException) {
+                e.printStackTrace()
+            } catch (e: InvalidKeySpecException) {
+                e.printStackTrace()
+            } catch (e: InvalidAlgorithmParameterException) {
+                e.printStackTrace()
+            } catch (e: InvalidKeyException) {
+                e.printStackTrace()
+            } catch (e: IllegalBlockSizeException) {
+                e.printStackTrace()
+            } catch (e: BadPaddingException) {
+                e.printStackTrace()
+            } catch (e: NoSuchPaddingException) {
+                e.printStackTrace()
+            }
+        }
         ltmkBtn.setOnClickListener{
+            sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
+            val rsa_primod = sp.getString("rsa_privatekey_mod",null)
+            val rsa_priexp = sp.getString("rsa_privatekey_exp",null)
+            val rsa_pubmod = sp.getString("rsa_publickey_mod",null)
+            val rsa_pubexp = sp.getString("rsa_publickey_exp",null)
 
-            ltmkState = true
-            stan = stan.plus(1)
-            txnHash = TXN_Hash(TE_ID,TE_PIN,LTID,stan.toString())
-            strBit62Ltmk = bit62Ltmk(indicator,version,downlondType,reqType,acqID,LTID,vendorID,TE_ID,txnHash,rsaExp,rsaMod)
-            Log.e(log,"txnHash: " + txnHash)
-            Log.e(log,"bit62Ltmk: " + strBit62Ltmk)
-            Log.e(log, "send ltmk")
-            Log.e(log, "ltmk msg: " + ltmkPacket())
-//            sendPacket(ltmkPacket())
+            if ((rsa_pubexp!=null)&&(rsa_pubmod!=null)&&(rsa_priexp!=null)&&(rsa_primod!=null)){
+                rsa.setPrivateKey(rsa_primod,rsa_priexp)
+                rsa.setPublicKey(rsa_pubmod,rsa_pubexp)
+                ltmkState = true
+                stan = stan.plus(1)
+                txnHash = TXN_Hash(TE_ID,TE_PIN,LTID,stan.toString())
+                Log.i(log,"exp = "+rsa_pubexp+"\nmod = "+rsa_pubmod)
+                strBit62Ltmk = bit62Ltmk(indicator,version,downlondType,reqType,acqID,LTID,vendorID,TE_ID,txnHash,rsa_pubexp,rsa_pubmod)
+                Log.e(log,"txnHash: " + txnHash)
+                Log.e(log,"bit62Ltmk: " + strBit62Ltmk)
+                Log.e(log, "send ltmk")
+                Log.e(log, "ltmk msg: " + ltmkPacket())
+                sendPacket(ltmkPacket())
+            }
+            else{
+                Log.i(log,"Don't have RSA,please gen RSA")
+            }
         }
 
         ltwkBtn.setOnClickListener{
@@ -121,7 +230,7 @@ class DownloadKey : AppCompatActivity() {
             Log.e(log,"bit62Ltwk: " + strBit62Ltwk)
             Log.e(log, "send ltwk")
             Log.w(log, "ltwk msg: " + ltwkPacket())
-//            sendPacket(ltwkPacket())
+            sendPacket(ltwkPacket())
         }
     }
 
@@ -164,16 +273,59 @@ class DownloadKey : AppCompatActivity() {
 
                 setNormalDialog("","Download Master Key Success.")
                 var bit62Msg = codeUnpack(responseMsg,62).toString()
-                keyIdLtmk = getKeyId(bit62Msg)
-                keyKCVltmk = getKeyKCV(bit62Msg)
+                Log.e(log,"bit62: " + bit62Msg)
 
-               ltmkState = false
+                Log.i(log,"test len = "+bit62Msg.length)
+                var getKeyIdMsg = getKeyId(bit62Msg)
+                var getKeyKCVMsg = getKeyKCV(bit62Msg)
+                var getMasterKey = get_eKey(bit62Msg)
+                sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
+                val masterKey = sp.getString("MasterKey",null)
+//                if (ChackKCV(getKeyKCVMsg,getMasterKey) == true){
+//
+//                    val editor: SharedPreferences.Editor = sp.edit()
+//                    editor.putString("MasterKey", getMasterKey)
+//                }
+                Log.w(log,"resr_geteKey_func: "+ getMasterKey)
+                Log.w(log,"test getKeyId func: " + getKeyIdMsg)
+                Log.w(log,"test getKeyKCV func: " + getKeyKCVMsg)
+                ltmkState = false
 
             }else if(ltwkState == true){
 
                 setNormalDialog("","Download Working Key Success.")
+                var bit62Msg = codeUnpack(responseMsg,62).toString()
+                Log.e(log,"bit62: " + bit62Msg)
 
-               ltwkState = false
+
+
+                var DEK = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eDEK(bit62Msg)))
+                var MAK = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eMAK(bit62Msg)))
+                var KCV_MAK = if (get_KCV_DEK(bit62Msg)==dataConverter.HexByteToHexString(des.enDESede(MAK, "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
+                var KCV_DEK = if (get_KCV_MAK(bit62Msg)==dataConverter.HexByteToHexString(des.enDESede(DEK, "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
+                if (KCV_MAK&&KCV_DEK){
+                    Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+                    Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+                    Log.w(log,"test get_KCV_MAK func: " + get_KCV_MAK(bit62Msg))
+                    Log.w(log,"test get_KCV_DEK func: " + get_KCV_DEK(bit62Msg))
+
+                    val editor: SharedPreferences.Editor = sp.edit()
+                    editor.putString("DEK", dataConverter.HexByteToHexString(DEK))
+                    editor.putString("MAK", dataConverter.HexByteToHexString(MAK))
+                    editor.commit()
+                }
+//                get_KCV_DEK(bit62Msg)
+//                get_KCV_MAK(bit62Msg)
+//                get_eDEK(bit62Msg)
+//                get_eMAK(bit62Msg)
+//
+//                Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+//                Log.w(log,"test get DEK func: " + dataConverter.HexByteToHexString(DEK))
+//                Log.w(log,"test get_KCV_MAK func: " + get_KCV_MAK(bit62Msg))
+//                Log.w(log,"test get_KCV_DEK func: " + get_KCV_DEK(bit62Msg))
+
+
+                ltwkState = false
             }
 
 
@@ -210,7 +362,6 @@ class DownloadKey : AppCompatActivity() {
             .setHeader("6001268001")
             .build()
     }
-
     private fun ltmkPacket(): ISOMessage {
         return ISOMessageBuilder.Packer(VERSION.V1987)
             .networkManagement()
@@ -233,11 +384,62 @@ class DownloadKey : AppCompatActivity() {
         var keyId:String = hexToString(keyIdMsg).toString()
         return keyId
     }
+//    fun ChackKCV(KCV:String,MasterKey:String):Boolean?{
+////        var kcv = des.deDESede(dataConverter.HexString2HexByte("KEY"), "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"));
+//
+//        if (KCV == dataConverter.HexByteToHexString(kcv).substring(0,8)){
+//            return true
+//        }
+//        return false
+//    }
 
     fun getKeyKCV(bit62 : String):String{
         var keyKCVMsg = bit62.substring(534,546)
         var keyKCV:String = hexToString(keyKCVMsg).toString()
         return keyKCV
+    }
+    fun get_eKey(bit62: String) : String? {
+        var eKey:String? = null
+        if (bit62.length == 586){
+            eKey = bit62.substring(22,bit62.length-52).toUpperCase()
+//            Log.i(log,"test len = "+eKey.toUpperCase())
+//            val data = byteArrayOf(
+//                0xf0.toByte(),
+//                0xf1.toByte(),
+//                0xf2.toByte(),
+//                0xf3.toByte(), 0xf4.toByte(), 0xf5.toByte(), 0xf6.toByte(), 0xf7.toByte()
+//            )
+//
+//            Log.e(log,"HexString2HexByte" + dataConverter.HexByteToHexString(dataConverter.HexString2HexByte(eKey.toUpperCase())))
+//            Log.e(log,"PRIVATE KEY MOD:: " +rsa.privateKey.modulus.toString(16).toString())
+////            Log.e(log,"PRIVATE KEY EXP" + dataConverter.HexByteToHexString())
+//            var result: ByteArray? = null
+////            result = rsa.enRSA_public(data)
+//            try {
+//                result = rsa.deRSA_private(dataConverter.HexString2HexByte(eKey.toUpperCase()))
+//            }catch (E:Exception){
+//                Log.e(log," Exception :: "+E.printStackTrace())
+//            }
+//                Log.i("log_tag","decryption eKey :  " + dataConverter.HexByteToHexString(result))
+        }
+        return eKey
+    }
+
+    fun get_KCV_MAK(bit62:String):String?{
+        val kcv = bit62.substring(86,102).toUpperCase()
+        return hexToString(kcv)
+    }
+    fun get_KCV_DEK(bit62:String):String?{
+        val kcv = bit62.substring(102,118).toUpperCase()
+        return hexToString(kcv)
+    }
+    fun get_eDEK(bit62:String):String?{
+        val dek = bit62.substring(22,54).toUpperCase()
+        return dek
+    }
+    fun get_eMAK(bit62:String):String?{
+        val mak = bit62.substring(54,86).toUpperCase()
+        return mak
     }
 
 
