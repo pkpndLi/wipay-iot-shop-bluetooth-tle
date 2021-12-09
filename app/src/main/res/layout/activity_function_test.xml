@@ -23,10 +23,10 @@
         android:text="ltwk"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.501"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/mk"
-        app:layout_constraintVertical_bias="0.317" />
+        app:layout_constraintVertical_bias="0.252" />
 
     <EditText
         android:id="@+id/stan"
@@ -38,6 +38,30 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/saleBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="44dp"
+        android:text="sale"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.229"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/wk"
+        app:layout_constraintVertical_bias="0.775" />
+
+    <Button
+        android:id="@+id/responseBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="response"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.612"
+        app:layout_constraintStart_toEndOf="@+id/saleBtn"
+        app:layout_constraintTop_toBottomOf="@+id/wk" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

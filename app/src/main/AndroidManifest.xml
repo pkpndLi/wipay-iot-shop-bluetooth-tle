@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.example.wipay_iot_shop">
     <!-- android:sharedUserId="android.uid.system" -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
@@ -18,6 +19,9 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" /> <!-- Android6.0 For Bluetooth Scan Only -->
     <uses-permission-sdk-23 android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE"
+        tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
