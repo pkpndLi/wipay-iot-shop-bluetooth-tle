@@ -74,6 +74,7 @@ class SaleTLEActivity : AppCompatActivity() {
     var reversalMsg: ISOMessage? = null
     var saleMsg: ISOMessage? = null
     var saleMsgOri: String = ""
+    var reverseMsgOri: String = ""
     var responseMsgOri: String = ""
     var readSale: String? = null
     var readStan: Int? = null
@@ -132,8 +133,8 @@ class SaleTLEActivity : AppCompatActivity() {
 //    private val HOST = "192.168.68.225"
 //      private val HOST = "192.168.178.187"
 //    var PORT = 5000
-//    private val HOST = "192.168.43.24"
-//    var PORT = 3000
+    private val HOST = "192.168.43.24"
+    var PORT = 3000
     //      private val HOST = "192.168.68.107"
 //    var PORT = 3000
 //    private val HOST = "192.168.68.119"
@@ -143,8 +144,8 @@ class SaleTLEActivity : AppCompatActivity() {
 //    var PORT = 7500
 
     //Tle host
-    private val HOST = "223.27.234.243"
-    var PORT = 5000
+//    private val HOST = "223.27.234.243"
+//    var PORT = 5000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -325,7 +326,7 @@ class SaleTLEActivity : AppCompatActivity() {
 
                 Log.i("log_tag", "send reverse packet")
 //                    sendPacket(reversalPacket(stan.toString()))
-//                Log.i("log_tag", "reversal:  " + reReversal.toString())
+                Log.i("log_tag", "reversal:  " + reReversal.toString())
                 sendPacket(reBuildISOPacket(reReversal.toString()))
 
                 Log.i("log_tag", "reverseFlag:  " + reverseFlag)
@@ -557,7 +558,9 @@ class SaleTLEActivity : AppCompatActivity() {
         Log.e(log,"saleMsgOri: " + saleMsgOri)
         Log.i(log, "Current stan: " + stan)
 
-        reversalMsg = reversalPacket(stan.toString())
+        reverseMsgOri = reversePacketWithMac().toString()
+        reversalMsg = reverseTlePacket(reverseMsgOri)
+//        reversalMsg = reversalPacket(stan.toString())
         var reverseTrans = ReversalEntity(null,reversalMsg.toString())
 
         reverseFlag = true
@@ -654,6 +657,26 @@ class SaleTLEActivity : AppCompatActivity() {
         Log.e(log,"_bit57: " + _bit57)
         var tlePacket = salePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
         Log.e(log,"saleTleMsg: " + tlePacket)
+
+        return tlePacket
+    }
+
+    fun reverseTlePacket(isoMsg: String):ISOMessage{
+
+        Log.d(log,"...build tleReversePacket...")
+        Log.e(log,"original packet: " + isoMsg)
+        _bit64 = bit64Mac(isoMsg,makKey)
+        Log.e(log,"_bit64: " + _bit64)
+        var tlvMsg = buildTLVMsg(cardNO,cardEXD)
+        Log.e(log,"test buildTLVMsg func: " + tlvMsg)
+        var tlvLen = (tlvMsg.length/2).toString()
+        Log.e(log,"tlvLen: "+ tlvLen)
+        cipherText = eTLV(tlvMsg,dekKey)
+        Log.e(log,"cipherText: "+ cipherText)
+        _bit57 = bit57Ver4(indicator,version,acqID,LTID,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
+        Log.e(log,"_bit57: " + _bit57)
+        var tlePacket = reversePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
+        Log.e(log,"reverseTleMsg: " + tlePacket)
 
         return tlePacket
     }
@@ -801,6 +824,31 @@ class SaleTLEActivity : AppCompatActivity() {
             .setField(FIELDS.F25_POS_ConditionCode, "00")
             .setField(FIELDS.F41_CA_TerminalID,StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
             .setField(FIELDS.F42_CA_ID,StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
+            .setField(FIELDS.F57_Reserved_National,bit57)
+            .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
+            .setField(FIELDS.F64_MAC,bit64Mac)
+            .setHeader("6001278001")
+            .build()
+
+    }
+
+    fun reversePacketTle(bit57:ByteArray,bit64Mac:ByteArray): ISOMessage {
+        return ISOMessageBuilder.Packer(VERSION.V1987)
+            .reversal()
+            .setLeftPadding(0x00.toByte())
+            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
+            .processCode("004000")
+            .setField(FIELDS.F4_AmountTransaction, convertToFloat(totalAmount!!.toDouble()))
+            .setField(FIELDS.F11_STAN, stan.toString())
+            .setField(FIELDS.F22_EntryMode, "0010")
+            .setField(FIELDS.F24_NII_FunctionCode, "120")
+            .setField(FIELDS.F25_POS_ConditionCode, "00")
+            .setField(FIELDS.F41_CA_TerminalID,
+                StringUtil.hexStringToByteArray(convertStringToHex(tid, false))
+            )
+            .setField(FIELDS.F42_CA_ID,
+                StringUtil.hexStringToByteArray(convertStringToHex(mid, false))
+            )
             .setField(FIELDS.F57_Reserved_National,bit57)
             .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
             .setField(FIELDS.F64_MAC,bit64Mac)

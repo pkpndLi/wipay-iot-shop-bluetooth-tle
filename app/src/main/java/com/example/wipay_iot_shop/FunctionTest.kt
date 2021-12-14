@@ -31,6 +31,7 @@ import com.imohsenb.ISO8583.exceptions.ISOException
 import com.imohsenb.ISO8583.builders.ISOClientBuilder
 
 import com.imohsenb.ISO8583.interfaces.ISOClient
+import com.imohsenb.ISO8583.utils.StringUtil
 
 import com.imohsenb.ISO8583.utils.StringUtil.hexStringToByteArray
 import org.greenrobot.eventbus.EventBus
@@ -49,7 +50,7 @@ class FunctionTest : AppCompatActivity() {
     var acqID = "120"
     var LITD = "00000000"
     var vendorID = "12000002"
-    var stan = "000004"
+    var stan = "000006"
     var TE_ID = "12002002"
     var rsaExp = "010001"
     var rsaMod = "8ED7581EA546985DCE653209B5239472B8B6789AB8B4A2E25E8E9F2BECAE8B708FFE62255755FD522BAA39AF5FA0AFF6E75503AD7C051C4AA752FED146D2BC31DCC6C52BA6CE1660FF84496FAFE8FAEDC66EF4475DB087F56EC430B43746A1D8BD9E86BC0BCEEAA1372632B4FEAA245D6ABD1D15EB5B37F669496550082D2613E2FB21BF59EF65202E4732152DEF5284D3227E8A2FAAC1787ECE93A8319C515E272AF35DE6063686AC6E304D44EF4D04BE73C3AF5BDAB32B65E51A8AD3A3E82E70903C3CBB6071254A57586725A08BA8EC2ABCA46D761C8747C0315F076BDE2698F73AF317015566B7F84A267D5230EDD35A05DA2198D8F900A9F65CEC89F7B5"
@@ -58,6 +59,7 @@ class FunctionTest : AppCompatActivity() {
     var ltwkIdCount = "0000"
 
     var tid = "22222222"
+    var mid = "222222222222222"
     var padding = "1234"
     var pinHash:String  = ""
     var txnHash:String = ""
@@ -79,6 +81,7 @@ class FunctionTest : AppCompatActivity() {
     var eBit64 = "8354917A00000000"
     var _bit64: ByteArray = ByteArray(8)
     var dCipherText = "0406000000020000"
+    var _bit57 = ""
 
     var strBit62Ltmk:String = ""
     var strBit62Ltwk:String = ""
@@ -174,21 +177,24 @@ class FunctionTest : AppCompatActivity() {
 
         saleBtn.setOnClickListener{
 
-            Log.d(log,"...build tleSalePacket...")
-            Log.e(log,"sale original: " + salePacket().toString())
-            _bit64 = bit64Mac(salePacket().toString(),makKey)
-            Log.e(log,"_bit64: " + _bit64)
-            var tlvMsg = buildTLVMsg(cardNO,cardEXD)
-            Log.e(log,"test buildTLVMsg func: " + tlvMsg)
-            var tlvLen = (tlvMsg.length/2).toString()
-            Log.e(log,"tlvLen: "+ tlvLen)
-            cipherText = eTLV(tlvMsg,dekKey)
-            Log.e(log,"cipherText: "+ cipherText)
-            var _bit57 = bit57Ver4(indicator,version,acqID,LITD,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
-            Log.e(log,"_bit57: " + _bit57)
-            var salePacketTLE = salePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
-            Log.e(log,"saleTleMsg: " + salePacketTLE)
+//            Log.d(log,"...build tleSalePacket...")
+//            Log.e(log,"sale original: " + salePacket().toString())
+//            _bit64 = bit64Mac(salePacket().toString(),makKey)
+//            Log.e(log,"_bit64: " + _bit64)
+//            var tlvMsg = buildTLVMsg(cardNO,cardEXD)
+//            Log.e(log,"test buildTLVMsg func: " + tlvMsg)
+//            var tlvLen = (tlvMsg.length/2).toString()
+//            Log.e(log,"tlvLen: "+ tlvLen)
+//            cipherText = eTLV(tlvMsg,dekKey)
+//            Log.e(log,"cipherText: "+ cipherText)
+//            var _bit57 = bit57Ver4(indicator,version,acqID,LITD,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
+//            Log.e(log,"_bit57: " + _bit57)
+//            var salePacketTLE = salePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
+//            Log.e(log,"saleTleMsg: " + salePacketTLE)
 //            sendPacket(salePacketTLE)
+            Log.e(log,"test reverseMsg: " + reversePacketWithMac())
+            Log.e(log,"test reverseTleMsg: " + reverseTlePacket(reversePacketWithMac().toString()))
+            sendPacket(reverseTlePacket(reversePacketWithMac().toString()))
         }
 
         responseBtn.setOnClickListener{
@@ -210,6 +216,26 @@ class FunctionTest : AppCompatActivity() {
             unpackIso(saleMsg,newSaleMsg)
         }
 
+    }
+
+    fun reverseTlePacket(isoMsg: String):ISOMessage{
+
+        Log.d(log,"...build tleReversePacket...")
+        Log.e(log,"original packet: " + isoMsg)
+        _bit64 = bit64Mac(isoMsg,makKey)
+        Log.e(log,"_bit64: " + _bit64)
+        var tlvMsg = buildTLVMsg(cardNO,cardEXD)
+        Log.e(log,"test buildTLVMsg func: " + tlvMsg)
+        var tlvLen = (tlvMsg.length/2).toString()
+        Log.e(log,"tlvLen: "+ tlvLen)
+        cipherText = eTLV(tlvMsg,dekKey)
+        Log.e(log,"cipherText: "+ cipherText)
+        _bit57 = bit57Ver4(indicator,version,acqID,LITD,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
+        Log.e(log,"_bit57: " + _bit57)
+        var tlePacket = reversePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
+        Log.e(log,"reverseTleMsg: " + tlePacket)
+
+        return tlePacket
     }
 
     fun macResponse(dCipherText: String,responseMsg: String,key: String): String{
@@ -671,6 +697,52 @@ class FunctionTest : AppCompatActivity() {
             .build()
 
     }
+
+
+    fun reversePacketWithMac(): ISOMessage {
+        return ISOMessageBuilder.Packer(VERSION.V1987)
+            .reversal()
+            .setLeftPadding(0x00.toByte())
+            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
+            .processCode("004000")
+            .setField(FIELDS.F2_PAN, cardNO)
+            .setField(FIELDS.F4_AmountTransaction, convertToFloat(totalAmount!!.toDouble()))
+            .setField(FIELDS.F11_STAN, stan.toString())
+            .setField(FIELDS.F14_ExpirationDate, cardEXD)
+            .setField(FIELDS.F22_EntryMode, "0010")
+            .setField(FIELDS.F24_NII_FunctionCode, "120")
+            .setField(FIELDS.F25_POS_ConditionCode, "00")
+            .setField(FIELDS.F41_CA_TerminalID,
+                StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
+            .setField(FIELDS.F42_CA_ID,
+                StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
+            .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
+            .setField(FIELDS.F64_MAC,"")
+            .setHeader("6001278001")
+            .build()
+    }
+
+    fun reversePacketTle(bit57:ByteArray,bit64Mac:ByteArray): ISOMessage {
+        return ISOMessageBuilder.Packer(VERSION.V1987)
+            .reversal()
+            .setLeftPadding(0x00.toByte())
+            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
+            .processCode("004000")
+            .setField(FIELDS.F4_AmountTransaction, convertToFloat(totalAmount.toDouble()))
+            .setField(FIELDS.F11_STAN, stan)
+            .setField(FIELDS.F22_EntryMode, "0010")
+            .setField(FIELDS.F24_NII_FunctionCode, "120")
+            .setField(FIELDS.F25_POS_ConditionCode, "00")
+            .setField(FIELDS.F41_CA_TerminalID,hexStringToByteArray(convertStringToHex(tid,false)))
+            .setField(FIELDS.F42_CA_ID,hexStringToByteArray(convertStringToHex(mid, false)))
+            .setField(FIELDS.F57_Reserved_National,bit57)
+            .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
+            .setField(FIELDS.F64_MAC,bit64Mac)
+            .setHeader("6001278001")
+            .build()
+
+    }
+
 
 
 
