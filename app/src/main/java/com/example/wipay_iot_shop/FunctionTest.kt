@@ -7,6 +7,9 @@ import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import com.example.testpos.evenbus.data.MessageEvent
+import com.example.wipay_iot_shop.cypto.DataConverter
+import com.example.wipay_iot_shop.cypto.iDES
+import com.example.wipay_iot_shop.cypto.iRSA
 import com.imohsenb.ISO8583.builders.ISOMessageBuilder
 import com.imohsenb.ISO8583.entities.ISOMessage
 import com.imohsenb.ISO8583.enums.FIELDS
@@ -64,6 +67,8 @@ class FunctionTest : AppCompatActivity() {
     var totalAmount = 200
 
     //tle parameter
+    var makKey = "3991E2A306727C99B85BB694E4AD7F54"
+    var dekKey = "139EB7CE451189AA8E613C0BA77D9045"
     var ltwkId = "9227"
     var macRawEncrypted = "6357B82E4E7F4C952FC02EDB6818E988206F56061A079FBB173D016F9A76351F8E1ABE0C88C6B566065A2872D3AEAE9EC1E5065B3B6587A1F9AFD70124FC4C5BFAB588B8D777AFA4"
     var cipherText = "03E9D376D0C0D20C39540D3E2C1C5791"
@@ -77,6 +82,10 @@ class FunctionTest : AppCompatActivity() {
 
     var strBit62Ltmk:String = ""
     var strBit62Ltwk:String = ""
+
+    val rsa = iRSA()
+    val des = iDES()
+    val dataConverter = DataConverter()
 
 //    private val HOST = "192.168.58.89"
 //    var PORT = 5000
@@ -122,14 +131,17 @@ class FunctionTest : AppCompatActivity() {
         Log.e(log,"ltwkPacket: " + ltwkPacket())
 
         //tleMsg
-        Log.e(log,"sale original: " + salePacket().toString())
-        Log.e(log,"test bit64Mac func.: " + bit64Mac(salePacket().toString()))
-        Log.e(log,"test buildTLVMsg func: " + buildTLVMsg(cardNO,cardEXD))
-        var tlvLen = (buildTLVMsg(cardNO,cardEXD).length/2).toString()
+//        Log.e(log,"sale original: " + salePacket().toString())
+////        Log.e(log,"test bit64Mac func.: " + bytesArrayToHexString(bit64Mac(salePacket().toString(),makKey)))
+//        var tlvMsg = buildTLVMsg(cardNO,cardEXD)
+//        Log.e(log,"test buildTLVMsg func: " + tlvMsg)
+//        var tlvLen = (tlvMsg.length/2).toString()
 //        var tlvLen = (buildTLVMsg(cardNO,cardEXD).length).toString()
-        Log.e(log,"tlvLen: "+ tlvLen)
-        var tleMsg = bit57Ver4(indicator,version,acqID,LITD,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
-        Log.e(log,"test bit57 func: " + tleMsg)
+//        Log.e(log,"tlvLen: "+ tlvLen)
+//        var eTLVMsg = eTLV(tlvMsg,dekKey)
+//        Log.e(log,"etleMsg: "+ eTLVMsg)
+//        var tleMsg = bit57Ver4(indicator,version,acqID,LITD,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
+//        Log.e(log,"test bit57 func: " + tleMsg)
 
 
 
@@ -162,27 +174,49 @@ class FunctionTest : AppCompatActivity() {
 
         saleBtn.setOnClickListener{
 
-            var salePacketTLE = salePacketTle(hexStringToByteArray(tleMsg)!!,_bit64)
+            Log.d(log,"...build tleSalePacket...")
+            Log.e(log,"sale original: " + salePacket().toString())
+            _bit64 = bit64Mac(salePacket().toString(),makKey)
+            Log.e(log,"_bit64: " + _bit64)
+            var tlvMsg = buildTLVMsg(cardNO,cardEXD)
+            Log.e(log,"test buildTLVMsg func: " + tlvMsg)
+            var tlvLen = (tlvMsg.length/2).toString()
+            Log.e(log,"tlvLen: "+ tlvLen)
+            cipherText = eTLV(tlvMsg,dekKey)
+            Log.e(log,"cipherText: "+ cipherText)
+            var _bit57 = bit57Ver4(indicator,version,acqID,LITD,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
+            Log.e(log,"_bit57: " + _bit57)
+            var salePacketTLE = salePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
             Log.e(log,"saleTleMsg: " + salePacketTLE)
 //            sendPacket(salePacketTLE)
         }
 
         responseBtn.setOnClickListener{
-
-            var responseMsg = "60800101270210203801000E8000850040000000040934311202012054455354303930303030303434303134303130303232323232323232004948544C45303431323035353238613130383230303039323237303034380000000800000000000000001AF68872FEAC3BD20006303030343841AA51690900000000"
-            var bit57Msg = codeUnpack(responseMsg,57).toString().uppercase(Locale.getDefault())
-            Log.w(log,"dBit57Msg: " + bit57Msg)
-            dCipherText("48544C45303431323035353238613130383230303039323237303034380000000800000000000000001AF68872FEAC3BD2")
-            buildResponseMsg(dCipherText,responseMsg)
+//            Log.d(log,"...check MAC response...")
+//            var responseMsg = "60800101270210203801000E8000850040000000040934311202012054455354303930303030303434303134303130303232323232323232004948544C45303431323035353238613130383230303039323237303034380000000800000000000000001AF68872FEAC3BD20006303030343841AA51690900000000"
+//            var bit57Msg = codeUnpack(responseMsg,57).toString().uppercase(Locale.getDefault())
+//            Log.w(log,"dBit57Msg: " + bit57Msg)
+//            var tlvResponseData = dCipherText(bit57Msg,dekKey)
+//            Log.w(log,"tlvResponseData: " + tlvResponseData)
+//            var bit64Response = macResponse(tlvResponseData,responseMsg,makKey)
+//            Log.w(log,"bit64Response: " + bit64Response)
+            var responseMsg = "60012780010200303801000E80000500400000000002000000000409343112020120544553543039303030303034343031343031303032323232323232320006303030343841"
+            var newResponseMsg = ArrayList<String>()
+            Log.d(log,"...response...")
+            unpackIso(responseMsg,newResponseMsg)
+            var saleMsg = "600127800102007024058000C000051641620262509580640040000000000200000000042512001001200032323232323232323232323232323232323232323232320006303030343841"
+            var newSaleMsg = ArrayList<String>()
+            Log.d(log,"...sale...")
+            unpackIso(saleMsg,newSaleMsg)
         }
 
     }
 
-    fun buildResponseMsg(dCipherText: String,responseMsg:String){
+    fun macResponse(dCipherText: String,responseMsg: String,key: String): String{
 
         var checkBit = dCipherText.subSequence(0,2)
         var checkLen = dCipherText.substring(2,4)
-        Log.w(log,"decryptMsg: " + dCipherText)
+//        Log.w(log,"decryptMsg: " + dCipherText)
         Log.w(log,"checkBit: " + checkBit)
         Log.w(log,"checkLen: " + checkLen)
 
@@ -195,7 +229,7 @@ class FunctionTest : AppCompatActivity() {
             Log.w(log,"field[$i]: " + field[i])
         }
 
-                if(checkBit == "04" && checkLen == "06"){
+//                if(checkBit == "04" && checkLen == "06"){
 
                     var amount = dCipherText.substring(4)
                     var totalAmount:Int = 200
@@ -239,16 +273,26 @@ class FunctionTest : AppCompatActivity() {
                     var macData = bytesArrayToHexString(_data).toString()
                     Log.w(log,"response for encrypt: " + macData)
 
-                    var macRawEncrypted = "3D9ECCD42C639BF3EE67A33CC8FCBF857919A2E9F23ECD60328C6D3B27F63AC6E8AC1DB851A067DE4C10A39568BD198ECDD5B18983805DEBAF780BBB9B8724CAAA51690921A27F95"
+                    var eMacData = des.enDESede(dataConverter.HexString2HexByte(key),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(macData))
+                    var macRawEncrypted = dataConverter.HexByteToHexString(eMacData)
+//                    var macRawEncrypted = "3D9ECCD42C639BF3EE67A33CC8FCBF857919A2E9F23ECD60328C6D3B27F63AC6E8AC1DB851A067DE4C10A39568BD198ECDD5B18983805DEBAF780BBB9B8724CAAA51690921A27F95"
                     var _eData = hexStringToByteArray(macRawEncrypted)
                     Log.w(log,"macRawEncrypted: " + _eData!!.size)
                     var _mac: ByteArray = ByteArray(8)
                     System.arraycopy(_eData, _eData?.size!! -8,_mac,0, 4)
-                    Log.w(log,"mac encrepted: " + bytesArrayToHexString(_mac).toString())
-                    _bit64 = _mac
+                    var _bit64Response = bytesArrayToHexString(_mac).toString()
+//                    Log.w(log,"macRespose encrepted: " + _bit64Response)
+//                }
+        return _bit64Response
+    }
 
-                }
+    fun eTLV(tlvMsg: String,key: String): String{
 
+        var eTLVMsg = des.enDESede(dataConverter.HexString2HexByte(key),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(tlvMsg + "00"))
+        var eTLV = dataConverter.HexByteToHexString(eTLVMsg)
+//        Log.e(log,"eTLV: " + eTLV)
+
+        return eTLV
     }
 
     fun unpackIso(isoMsg: String,field:ArrayList<String>):ArrayList<String>{
@@ -268,17 +312,21 @@ class FunctionTest : AppCompatActivity() {
         return field
     }
 
-    fun dCipherText(bit57Msg: String){
+    fun dCipherText(bit57Msg: String,key: String):String{
 
         var cipherMsg = bit57Msg.substring(bit57Msg.length - 16)
         Log.w(log,"cipherMsg: " + cipherMsg)
         //add Decryption TDES func.
+        var dCipherMsg = des.deDESede(dataConverter.HexString2HexByte(key),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(cipherMsg))
+        var dCipherData = dataConverter.HexByteToHexString(dCipherMsg)
+//        Log.w(log,"dCipherMsg: " + dCipherData)
 
+        return dCipherData
     }
 
 
 
-    fun bit64Mac(isoMsg: String): String{
+    fun bit64Mac(isoMsg: String,key: String): ByteArray{
 
         var preMacMsg = isoMsg.substring(10)
         var data = hexStringToByteArray(preMacMsg)
@@ -294,15 +342,18 @@ class FunctionTest : AppCompatActivity() {
 //        var macData = print(_data)
         var macData = bytesArrayToHexString(_data).toString()
         Log.e(log,"mac pre encrypt: " + macData)
+        var eMacData = des.enDESede(dataConverter.HexString2HexByte(key),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(macData))
+        var macRawEncrypted = dataConverter.HexByteToHexString(eMacData)
+        Log.e(log,"macRawEncrypted(hex): " + macRawEncrypted)
         var _eData = hexStringToByteArray(macRawEncrypted)
         Log.e(log,"macRawEncrypted: " + _eData)
         var _mac: ByteArray = ByteArray(8)
         System.arraycopy(_eData, _eData?.size!! -8,_mac,0, 4)
-        Log.e(log,"mac encrepted: " + bytesArrayToHexString(_mac).toString())
-        _bit64 = _mac
+        Log.e(log,"_MAC: " + bytesArrayToHexString(_mac).toString())
+//        _bit64 = _mac
 //        var mac = (bytesArrayToHexString(_mac).toString()).uppercase(Locale.getDefault()) ?: String()
 //        Log.e(log,"mac is: " + bytesArrayToHexString(_mac).toString())
-        return macData
+        return _mac
     }
 
 //    fun bit57(indicator:String,version:String,acqID:String,tid:String,encryptMethod:String,ltwkId:String,encryptCount:String,TLVLen:String,reserved:String,cipherText:String):String{
@@ -329,8 +380,8 @@ class FunctionTest : AppCompatActivity() {
         var reserved = convertStringToHex(reserved,false)
 //        var bit57Msg = hexData + hexStringToByteArray(tlvLenHex) + reserved + cipherText
 
-        var bit57Msg = hexData + tlvLen + reserved + cipherText
-        return bit57Msg
+        var _bit57 = hexData + tlvLen + reserved + cipherText
+        return _bit57
     }
 
 
