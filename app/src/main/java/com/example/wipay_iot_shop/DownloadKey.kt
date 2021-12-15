@@ -65,7 +65,7 @@ class DownloadKey : AppCompatActivity() {
     var TE_ID = "12002002"
 
     var TE_PIN = "22222222"
-    var keyIdLtmk = "6298"
+    var keyIdLtmk = "7102"
     var keyKCVltmk = ""
     var ltwkId = "0000"
     var tid = "22222222"
@@ -100,6 +100,14 @@ class DownloadKey : AppCompatActivity() {
     val des = iDES()
     val dataConverter = DataConverter()
 
+    ////
+    var DEK : String?=null
+    var MAK : String?=null
+    var LTWK_ID : String?=null
+    var masterKey : String?=null
+
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_download_key)
@@ -109,10 +117,10 @@ class DownloadKey : AppCompatActivity() {
         val rsa_pubexp = sp.getString("rsa_pubblickey_exp",null)
         val rsa_primod = sp.getString("rsa_privatekey_mod",null)
         val rsa_priexp = sp.getString("rsa_privatekey_exp",null)
-
-        val DEK = sp.getString("DEK",null)
-        val MAK = sp.getString("MAK",null)
-        val LTWK_ID = sp.getString("LTWK_ID",null)
+        masterKey = sp.getString("MasterKey",null)
+        DEK = sp.getString("DEK",null)
+        MAK = sp.getString("MAK",null)
+        LTWK_ID = sp.getString("LTWK_ID",null)
 
         var ltmkBtn = findViewById<Button>(R.id.ltmkBtn)
         var ltwkBtn = findViewById<Button>(R.id.ltwkBtn)
@@ -121,9 +129,8 @@ class DownloadKey : AppCompatActivity() {
             contentResolver,
             Settings.Secure.ANDROID_ID
         )
-//        LTID = androidId.substring(androidId.length-8,androidId.length).toUpperCase()
-        sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
-        val masterKey = sp.getString("MasterKey",null)
+        LTID = androidId.substring(androidId.length-8,androidId.length).toUpperCase()
+
         setTextView("LTID",LTID)
         setTextView("Master key",masterKey)
         setTextView("Working key MAK",MAK)
@@ -147,17 +154,17 @@ class DownloadKey : AppCompatActivity() {
 
 //        LTID = androidId
 
-        val unpadded = "7"
-        val padded = "000000".substring(unpadded.length) + unpadded
-
-        Log.e(log,"test pedding: " + padded)
-        Log.w(log,"test hexToString func." + hexToString("0018496E76616C69642056656E646F725F49442E"))
-
-        Log.w(log,"bit62 to hex: " + hexToString("014D6080010126081020380100028000049700000000012342061115012030303232323232323232029348544C453034343131323047B4B7BB813C3E00ADB1D9F7D05BE635CE2EA36E29152899E4F665EA4F6C3C769AD14E1BAF0858B9034E3C234AE165BE5DC81FF83D6D0C61991F081840A18CDB02803569FB33B05C0FD30CD85E0DF9F4C1D5753AAE7F3FE839A3450721C3E53BDD5F7173221A21D91FAD2FCBC718A7366118F008D3B67685F8192EA64AF776296B93A1969D41E96B52286DAE9C7DB36B01A6FE757DF43B53A5F6158E0120648E915A7DAF9AEF25992D93F74932D0A33DFE615F7F9E387EAA5C76133B8611E12914DDCD3F948F26342933CEDE5C495335C5A1E8E40E00B846960BAA3AC3F1355C3F3EC574629CC0DF3A82C2438F5781BB5B9CF2B1CC7313AEF46DD824620C826E3030364230373231343720202020202020202020202020202020"))
-        var getKeyIdMsg = getKeyId("48544c45303434313132304dab11d7ba05376fab31bec7a1f5b030829949333d5435789d22a62930c7f07dd8a8270d518ec85460b61af42cac847bb4c4650c04d6a786f422b880b05126ceb092ec5d155ba9e88470b366ead10ce1a5c6a53dcf811eac713b4fd0dc26b07bd981a5365ae59f4ce1ddbba1c953af25261646c60ea15a6766428afc86d435bf42c4fed0aad732fd4c9859adee2d9855b1abcc4a52f102ee57e6dae57692f14944a2f35ed8a8527e78ebfe1d72995cde4a7b4432bc208e030c3dccef7972db1f7d5bf5600238802cbd756aba3050e0f76eb0f861229b0ab238b0c61a969e2c10bf9b9d02b1bdd2ec01fa043af458a8a7fc67b287d0d4e372f95283fe62805db23646463431443136303520202020202020202020202020202020")
-        var getKeyKCVMsg = getKeyKCV("48544c45303434313132304dab11d7ba05376fab31bec7a1f5b030829949333d5435789d22a62930c7f07dd8a8270d518ec85460b61af42cac847bb4c4650c04d6a786f422b880b05126ceb092ec5d155ba9e88470b366ead10ce1a5c6a53dcf811eac713b4fd0dc26b07bd981a5365ae59f4ce1ddbba1c953af25261646c60ea15a6766428afc86d435bf42c4fed0aad732fd4c9859adee2d9855b1abcc4a52f102ee57e6dae57692f14944a2f35ed8a8527e78ebfe1d72995cde4a7b4432bc208e030c3dccef7972db1f7d5bf5600238802cbd756aba3050e0f76eb0f861229b0ab238b0c61a969e2c10bf9b9d02b1bdd2ec01fa043af458a8a7fc67b287d0d4e372f95283fe62805db23646463431443136303520202020202020202020202020202020")
-        Log.w(log,"test getKeyId func: " + getKeyIdMsg)
-        Log.w(log,"test getKeyKCV func: " + getKeyKCVMsg)
+//        val unpadded = "7"
+//        val padded = "000000".substring(unpadded.length) + unpadded
+//
+//        Log.e(log,"test pedding: " + padded)
+//        Log.w(log,"test hexToString func." + hexToString("0018496E76616C69642056656E646F725F49442E"))
+//
+//        Log.w(log,"bit62 to hex: " + hexToString("014D6080010126081020380100028000049700000000012342061115012030303232323232323232029348544C453034343131323047B4B7BB813C3E00ADB1D9F7D05BE635CE2EA36E29152899E4F665EA4F6C3C769AD14E1BAF0858B9034E3C234AE165BE5DC81FF83D6D0C61991F081840A18CDB02803569FB33B05C0FD30CD85E0DF9F4C1D5753AAE7F3FE839A3450721C3E53BDD5F7173221A21D91FAD2FCBC718A7366118F008D3B67685F8192EA64AF776296B93A1969D41E96B52286DAE9C7DB36B01A6FE757DF43B53A5F6158E0120648E915A7DAF9AEF25992D93F74932D0A33DFE615F7F9E387EAA5C76133B8611E12914DDCD3F948F26342933CEDE5C495335C5A1E8E40E00B846960BAA3AC3F1355C3F3EC574629CC0DF3A82C2438F5781BB5B9CF2B1CC7313AEF46DD824620C826E3030364230373231343720202020202020202020202020202020"))
+//        var getKeyIdMsg = getKeyId("48544c45303434313132304dab11d7ba05376fab31bec7a1f5b030829949333d5435789d22a62930c7f07dd8a8270d518ec85460b61af42cac847bb4c4650c04d6a786f422b880b05126ceb092ec5d155ba9e88470b366ead10ce1a5c6a53dcf811eac713b4fd0dc26b07bd981a5365ae59f4ce1ddbba1c953af25261646c60ea15a6766428afc86d435bf42c4fed0aad732fd4c9859adee2d9855b1abcc4a52f102ee57e6dae57692f14944a2f35ed8a8527e78ebfe1d72995cde4a7b4432bc208e030c3dccef7972db1f7d5bf5600238802cbd756aba3050e0f76eb0f861229b0ab238b0c61a969e2c10bf9b9d02b1bdd2ec01fa043af458a8a7fc67b287d0d4e372f95283fe62805db23646463431443136303520202020202020202020202020202020")
+//        var getKeyKCVMsg = getKeyKCV("48544c45303434313132304dab11d7ba05376fab31bec7a1f5b030829949333d5435789d22a62930c7f07dd8a8270d518ec85460b61af42cac847bb4c4650c04d6a786f422b880b05126ceb092ec5d155ba9e88470b366ead10ce1a5c6a53dcf811eac713b4fd0dc26b07bd981a5365ae59f4ce1ddbba1c953af25261646c60ea15a6766428afc86d435bf42c4fed0aad732fd4c9859adee2d9855b1abcc4a52f102ee57e6dae57692f14944a2f35ed8a8527e78ebfe1d72995cde4a7b4432bc208e030c3dccef7972db1f7d5bf5600238802cbd756aba3050e0f76eb0f861229b0ab238b0c61a969e2c10bf9b9d02b1bdd2ec01fa043af458a8a7fc67b287d0d4e372f95283fe62805db23646463431443136303520202020202020202020202020202020")
+//        Log.w(log,"test getKeyId func: " + getKeyIdMsg)
+//        Log.w(log,"test getKeyKCV func: " + getKeyKCVMsg)
         btn_genRSA.setOnClickListener {
 
 
@@ -209,6 +216,7 @@ class DownloadKey : AppCompatActivity() {
                 e.printStackTrace()
             }
         }
+
         ltmkBtn.setOnClickListener{
             sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
             val rsa_primod = sp.getString("rsa_privatekey_mod",null)
@@ -229,6 +237,7 @@ class DownloadKey : AppCompatActivity() {
                 Log.e(log, "send ltmk")
                 Log.e(log, "ltmk msg: " + ltmkPacket())
                 sendPacket(ltmkPacket())
+
             }
             else{
                 Log.i(log,"Don't have RSA,please gen RSA")
@@ -271,6 +280,7 @@ class DownloadKey : AppCompatActivity() {
             manageResponse(event)
         }
 
+
     }
 
     fun manageResponse(event: MessageEvent){
@@ -293,7 +303,7 @@ class DownloadKey : AppCompatActivity() {
                 var getKeyKCVMsg = getKeyKCV(bit62Msg)
                 var getMasterKey = get_eKey(bit62Msg)
                 val editor: SharedPreferences.Editor = sp.edit()
-                    editor.putString("MasterKey", "A87C4D4ED37D63C71F04DC1B7E864C68")
+                    editor.putString("MasterKey", "8673DDEE73FCFE2668094EF9DE3F46AA")
                     editor.commit()
 //                if (ChackKCV(getKeyKCVMsg,getMasterKey) == true){
 //
@@ -314,8 +324,8 @@ class DownloadKey : AppCompatActivity() {
 
 
 
-                var DEK = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eDEK(bit62Msg)))
-                var MAK = des.deDESede(dataConverter.HexString2HexByte("A87C4D4ED37D63C71F04DC1B7E864C68"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eMAK(bit62Msg)))
+                var DEK = des.deDESede(dataConverter.HexString2HexByte("8673DDEE73FCFE2668094EF9DE3F46AA"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eDEK(bit62Msg)))
+                var MAK = des.deDESede(dataConverter.HexString2HexByte("8673DDEE73FCFE2668094EF9DE3F46AA"),"DESede/CBC/NoPadding", dataConverter.HexString2HexByte(get_eMAK(bit62Msg)))
                 var KCV_MAK = if (get_KCV_DEK(bit62Msg)==dataConverter.HexByteToHexString(des.enDESede(MAK, "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
                 var KCV_DEK = if (get_KCV_MAK(bit62Msg)==dataConverter.HexByteToHexString(des.enDESede(DEK, "DESede/CBC/NoPadding", dataConverter.HexString2HexByte("0000000000000000"))).substring(0,8)) true else false
                 if (KCV_MAK&&KCV_DEK){
@@ -325,13 +335,22 @@ class DownloadKey : AppCompatActivity() {
                     Log.w(log,"test get_KCV_DEK func: " + get_KCV_DEK(bit62Msg))
                     Log.w(log,"test get_LTWK_ID func: " + hexToString(get_LTMK_ID(bit62Msg)!!))
 
-
                     val editor: SharedPreferences.Editor = sp.edit()
                     editor.putString("DEK", dataConverter.HexByteToHexString(DEK))
                     editor.putString("MAK", dataConverter.HexByteToHexString(MAK))
                     editor.putString("LTWK_ID", hexToString(get_LTMK_ID(bit62Msg)!!))
                     editor.commit()
+
+                    view = ""
+                    setTextView("LTID",LTID)
+                    setTextView("Master key",masterKey)
+                    setTextView("Working key MAK",dataConverter.HexByteToHexString(MAK))
+                    setTextView("Working key DEK",dataConverter.HexByteToHexString(DEK))
+                    setTextView("Working key ID",hexToString(get_LTMK_ID(bit62Msg)!!))
+
                 }
+
+
 //                get_KCV_DEK(bit62Msg)
 //                get_KCV_MAK(bit62Msg)
 //                get_eDEK(bit62Msg)
