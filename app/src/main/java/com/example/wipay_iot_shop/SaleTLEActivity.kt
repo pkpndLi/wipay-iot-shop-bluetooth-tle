@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.TextView
@@ -65,7 +66,7 @@ class SaleTLEActivity : AppCompatActivity() {
     var output1: TextView? = null
     var output2: TextView? = null
     var stan: Int? = null
-    var initialStan: Int? = 4
+    var initialStan: Int? = 0
     var reverseFlag :Boolean? = null
     var reversal: String? = null
     var responseCode: String? = null
@@ -133,8 +134,8 @@ class SaleTLEActivity : AppCompatActivity() {
 //    private val HOST = "192.168.68.225"
 //      private val HOST = "192.168.178.187"
 //    var PORT = 5000
-    private val HOST = "192.168.43.24"
-    var PORT = 3000
+//    private val HOST = "192.168.43.24"
+//    var PORT = 3000
     //      private val HOST = "192.168.68.107"
 //    var PORT = 3000
 //    private val HOST = "192.168.68.119"
@@ -144,8 +145,8 @@ class SaleTLEActivity : AppCompatActivity() {
 //    var PORT = 7500
 
     //Tle host
-//    private val HOST = "223.27.234.243"
-//    var PORT = 5000
+    private val HOST = "223.27.234.243"
+    var PORT = 5000
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -159,6 +160,9 @@ class SaleTLEActivity : AppCompatActivity() {
 
         settlementFlag =  sp.getBoolean("settlementFlag",false)
         firstTransactionFlag = sp.getBoolean("firstTransactionFlag",true)
+        makKey = sp.getString("MAK",null).toString()
+        dekKey = sp.getString("DEK",null).toString()
+        ltwkId = sp.getString("LTWK_ID",null).toString()
 
         intent.apply {
 //          processing = getBooleanExtra("processing",false)
@@ -166,12 +170,16 @@ class SaleTLEActivity : AppCompatActivity() {
             cardNO = getStringExtra("cardNO").toString()
             cardEXD = getStringExtra("cardEXD").toString()
             menuName = getStringExtra("menuName").toString()
-            makKey = getStringExtra("MAK").toString()
-            dekKey = getStringExtra("DEK").toString()
-            ltwkId = getStringExtra("keyIdLtwk").toString()
+
         }
 
-         LTID = serialNumber()
+//        var androidId: String = Settings.Secure.getString(
+//            contentResolver,
+//            Settings.Secure.ANDROID_ID
+//        )
+
+        LTID = serialNumber()
+
 //         cardNO = "4162026250958064"
 //         cardEXD = "2512"
 //         totalAmount = 200
@@ -213,11 +221,12 @@ class SaleTLEActivity : AppCompatActivity() {
 
             Log.i("log_tag","processing: "+processing)
 
-            makKey = "3991E2A306727C99B85BB694E4AD7F54"
-            dekKey = "139EB7CE451189AA8E613C0BA77D9045"
-            ltwkId = "9227"
+//            makKey = "3991E2A306727C99B85BB694E4AD7F54"
+//            dekKey = "139EB7CE451189AA8E613C0BA77D9045"
+//            ltwkId = "9227"
 //            stan = 4
             Log.d(log,"...TEST TLE FLOW...")
+            Log.e(log,"ltid: " + LTID)
             Log.e(log,"dekKey: " + dekKey)
             Log.e(log,"makKey: " + makKey)
             Log.e(log,"ltwkKeyId: " + ltwkId)
@@ -858,11 +867,11 @@ class SaleTLEActivity : AppCompatActivity() {
     }
 
     fun serialNumber():String {
-//        var androidId: String = Settings.Secure.getString(
-//            contentResolver,
-//            Settings.Secure.ANDROID_ID
-//        )
-        var androidId = "24215d325528a108"
+        var androidId: String = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ANDROID_ID
+        )
+//        var androidId = "24215d325528a108"
         var sn = androidId.substring(androidId.length - 8)
         return sn
     }
@@ -1015,26 +1024,26 @@ class SaleTLEActivity : AppCompatActivity() {
     }
 
 //    @Throws(ISOException::class, ISOClientException::class, IOException::class)
-//    fun salePacket(STAN: String): ISOMessage? {
-//        return ISOMessageBuilder.Packer(VERSION.V1987)
-//            .financial()
-//            .setLeftPadding(0x00.toByte())
-//            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
-//            .processCode("000000")
-//            .setField(FIELDS.F2_PAN, cardNO)
-//            .setField(FIELDS.F4_AmountTransaction, convertToFloat(totalAmount!!.toDouble()))
-//            .setField(FIELDS.F11_STAN, STAN)
-//            .setField(FIELDS.F14_ExpirationDate, cardEXD)
-//            .setField(FIELDS.F22_EntryMode, "0010")
-//            .setField(FIELDS.F24_NII_FunctionCode, "120")
-//            .setField(FIELDS.F25_POS_ConditionCode, "00")
-//            .setField(FIELDS.F41_CA_TerminalID,hexStringToByteArray("3232323232323232"))
-//            .setField(FIELDS.F42_CA_ID,hexStringToByteArray("323232323232323232323232323232"))
-//            .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
-//            .setHeader("6001208000")
-//            .build()
-//
-//    }
+    fun salePacket(STAN: String): ISOMessage? {
+        return ISOMessageBuilder.Packer(VERSION.V1987)
+            .financial()
+            .setLeftPadding(0x00.toByte())
+            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
+            .processCode("000000")
+            .setField(FIELDS.F2_PAN, cardNO)
+            .setField(FIELDS.F4_AmountTransaction, convertToFloat(totalAmount!!.toDouble()))
+            .setField(FIELDS.F11_STAN, STAN)
+            .setField(FIELDS.F14_ExpirationDate, cardEXD)
+            .setField(FIELDS.F22_EntryMode, "0010")
+            .setField(FIELDS.F24_NII_FunctionCode, "120")
+            .setField(FIELDS.F25_POS_ConditionCode, "00")
+            .setField(FIELDS.F41_CA_TerminalID,hexStringToByteArray("3232323232323232"))
+            .setField(FIELDS.F42_CA_ID,hexStringToByteArray("323232323232323232323232323232"))
+            .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
+            .setHeader("6001208000")
+            .build()
+
+    }
 
     fun reversalPacket(STAN: String): ISOMessage? {
         return ISOMessageBuilder.Packer(VERSION.V1987)
