@@ -196,7 +196,7 @@ import java.util.ArrayList
                  R.id.btn_SelectOK -> {
                      m_editRecvData!!.setText("")
 
-                     val itn = Intent(this,SaleTLEActivity::class.java).apply{
+                     val itn = Intent(this,SaleTLEActivity2::class.java).apply{
                          putExtra("totalAmount",totalAmount)
                          putExtra("menuName",menuName)
                          putExtra("cardNO",cardNO)

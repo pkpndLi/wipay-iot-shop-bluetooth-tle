@@ -100,7 +100,7 @@ class MenuActivity : AppCompatActivity() {
         }
 
         listImg.setOnClickListener {
-            startActivity(Intent(this,SettlementActivity::class.java))
+            startActivity(Intent(this,SettlementTLEActivity::class.java))
         }
 
 

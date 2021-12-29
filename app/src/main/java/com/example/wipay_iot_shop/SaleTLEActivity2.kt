@@ -43,7 +43,7 @@ import java.nio.charset.StandardCharsets
 import java.util.*
 import kotlin.experimental.and
 
-class SaleTLEActivity : AppCompatActivity() {
+class SaleTLEActivity2 : AppCompatActivity() {
 
     var appDatabase : AppDatabase? = null
     var reversalDAO : ReversalDao? = null
@@ -51,6 +51,7 @@ class SaleTLEActivity : AppCompatActivity() {
     var flagReverseDAO : FlagReverseDao? = null
     var stuckReverseDAO : StuckReverseDao? = null
     var responseDAO : ResponseDao? = null
+    var transactionDAO : TransactionDao? = null
 
     private val MY_PREFS = "my_prefs"
     private lateinit var sp: SharedPreferences
@@ -150,11 +151,11 @@ class SaleTLEActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_sale_tleactivity)
+        setContentView(R.layout.activity_sale_tle2)
 
         sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
 
-        main = findViewById(R.id.SaleTLEActivity)
+        main = findViewById(R.id.SaleTLEActivity2)
         val setOrder = findViewById<TextView>(R.id.order)
         val setAmount = findViewById<TextView>(R.id.amount)
 
@@ -221,10 +222,13 @@ class SaleTLEActivity : AppCompatActivity() {
 
             Log.i("log_tag","processing: "+processing)
 
-//            makKey = "3991E2A306727C99B85BB694E4AD7F54"
-//            dekKey = "139EB7CE451189AA8E613C0BA77D9045"
-//            ltwkId = "9227"
+            makKey = "3991E2A306727C99B85BB694E4AD7F54"
+            dekKey = "139EB7CE451189AA8E613C0BA77D9045"
+            ltwkId = "9227"
 //            stan = 4
+            cardNO = "1111111111111111"
+            cardEXD = "1210"
+
             Log.d(log,"...TEST TLE FLOW...")
             Log.e(log,"ltid: " + LTID)
             Log.e(log,"dekKey: " + dekKey)
@@ -279,6 +283,7 @@ class SaleTLEActivity : AppCompatActivity() {
         flagReverseDAO = appDatabase?.flagReverseDao()
         stuckReverseDAO = appDatabase?.stuckReverseDao()
         responseDAO = appDatabase?.responseDao()
+        transactionDAO = appDatabase?.transactionDao()
 
     }
 
@@ -386,7 +391,8 @@ class SaleTLEActivity : AppCompatActivity() {
                 var reStan = codeUnpack(reReversal.toString(),11)
 //                var reversalApprove = SaleEntity(null,reReversal.toString(), reStan!!.toInt())
                 //รายการที่ทำ reverse สำเร็จต้อง save stan เอาไว้ เพื่อให้ stan ต่อเนื่อง
-                var reversalApprove = SaleEntity(null,null, reStan!!.toInt())
+//                var reversalApprove = SaleEntity(null,null, reStan!!.toInt())
+                var reversalApprove = TransactionEntity(null,null, null,reStan!!.toInt())
                 var responseReversal = ResponseEntity(null,null)
 
                 Thread{
@@ -394,9 +400,11 @@ class SaleTLEActivity : AppCompatActivity() {
                     accessDatabase()
                     flagReverseDAO?.insertFlagReverse(flagReverse)
                     stuckReverseDAO?.insertStuckReverse(reverseStuck)
-                    saleDAO?.insertSale(reversalApprove)
+//                    saleDAO?.insertSale(reversalApprove)
+                    transactionDAO?.insertTransaction(reversalApprove)
                     responseDAO?.insertResponseMsg(responseReversal)
-                    readSale = saleDAO?.getSale()?.isoMsg
+//                    readSale = saleDAO?.getSale()?.isoMsg
+                    readSale = transactionDAO?.getTransaction()?.isoMsgTle
                     readResponseMsg = responseDAO?.getResponseMsg()?.responseMsg
                     readStan = saleDAO?.getSale()?.STAN
                     Log.i("log_tag","saveReverse-sale :  " + readSale)
@@ -414,7 +422,8 @@ class SaleTLEActivity : AppCompatActivity() {
                     Log.i(log, "Transaction Approve.")
 //                transactionApprove()
                     setDialogApprove(null,"Transaction complete.")
-                    var saleApprove = SaleEntity(null,saleMsgOri,stan)
+//                    var saleApprove = SaleEntity(null,saleMsgOri,stan)
+                    var saleApprove = TransactionEntity(null,saleMsgOri,saleMsg.toString(),stan)
                     var responseSaleApprove = ResponseEntity(null,responseMsgOri)
 
 
@@ -422,12 +431,13 @@ class SaleTLEActivity : AppCompatActivity() {
 
                         accessDatabase()
                         flagReverseDAO?.insertFlagReverse(flagReverse)
-                        saleDAO?.insertSale(saleApprove)
+//                        saleDAO?.insertSale(saleApprove)
+                        transactionDAO?.insertTransaction(saleApprove)
                         responseDAO?.insertResponseMsg(responseSaleApprove)
-                        readSale = saleDAO?.getSale()?.isoMsg
+                        readSale = transactionDAO?.getTransaction()?.isoMsgTle
                         readResponseMsg = responseDAO?.getResponseMsg()?.responseMsg
-                        readStan = saleDAO?.getSale()?.STAN
-                        startId = saleDAO?.getSale()?._id!!
+                        readStan = transactionDAO?.getTransaction()?.STAN
+                        startId = transactionDAO?.getTransaction()?._id!!
 
                         if(firstTransactionFlag == true){
 
@@ -455,9 +465,9 @@ class SaleTLEActivity : AppCompatActivity() {
 
                 }else{
 
-                     setDialogApprove(null,"Check Mac Failed!!!")
+                    setDialogApprove(null,"Check Mac Failed!!!")
 
-                     }
+                }
 
             }
 
@@ -483,7 +493,8 @@ class SaleTLEActivity : AppCompatActivity() {
                 }
 
                 Log.i("log_tag", "Error code: " + responseCode)
-                var transactionError = SaleEntity(null,null,stan)
+//                var transactionError = SaleEntity(null,null,stan)
+                var transactionError = TransactionEntity(null,null,null,stan)
                 var responseSaleError = ResponseEntity(null,null)
 
                 Thread{
@@ -491,12 +502,13 @@ class SaleTLEActivity : AppCompatActivity() {
                     accessDatabase()
 
                     flagReverseDAO?.insertFlagReverse(flagReverse)
-                    saleDAO?.insertSale(transactionError)
+//                    saleDAO?.insertSale(transactionError)
+                    transactionDAO?.insertTransaction(transactionError)
                     responseDAO?.insertResponseMsg(responseSaleError)
                     readResponseMsg = responseDAO?.getResponseMsg()?.responseMsg
-                    readSale = saleDAO?.getSale()?.isoMsg
-                    readStan = saleDAO?.getSale()?.STAN
-                    startId = saleDAO?.getSale()?._id!!
+                    readSale =  transactionDAO?.getTransaction()?.isoMsgTle
+                    readStan = transactionDAO?.getTransaction()?.STAN
+                    startId = transactionDAO?.getTransaction()?._id!!
 
 
                     Log.w("log_tag","saveTransaction :  " + readSale)
@@ -602,8 +614,8 @@ class SaleTLEActivity : AppCompatActivity() {
                 var response = bytesArrayToHexString(client.sendMessageSync(packet))
                 EventBus.getDefault().post(
                     MessageEvent(
-                    "iso_response",
-                    response.toString())
+                        "iso_response",
+                        response.toString())
                 )
 
                 client.disconnect()
@@ -662,7 +674,7 @@ class SaleTLEActivity : AppCompatActivity() {
         Log.e(log,"tlvLen: "+ tlvLen)
         cipherText = eTLV(tlvMsg,dekKey)
         Log.e(log,"cipherText: "+ cipherText)
-         _bit57 = bit57Ver4(indicator,version,acqID,LTID,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
+        _bit57 = bit57Ver4(indicator,version,acqID,LTID,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved,cipherText)
         Log.e(log,"_bit57: " + _bit57)
         var tlePacket = salePacketTle(hexStringToByteArray(_bit57)!!,_bit64)
         Log.e(log,"saleTleMsg: " + tlePacket)
@@ -703,8 +715,12 @@ class SaleTLEActivity : AppCompatActivity() {
             .setField(FIELDS.F22_EntryMode, "0010")
             .setField(FIELDS.F24_NII_FunctionCode, "120")
             .setField(FIELDS.F25_POS_ConditionCode, "00")
-            .setField(FIELDS.F41_CA_TerminalID,StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
-            .setField(FIELDS.F42_CA_ID,StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
+            .setField(
+                FIELDS.F41_CA_TerminalID,
+                StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
+            .setField(
+                FIELDS.F42_CA_ID,
+                StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
             .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
             .setField(FIELDS.F64_MAC,"")
             .setHeader("6001278001")
@@ -725,8 +741,12 @@ class SaleTLEActivity : AppCompatActivity() {
             .setField(FIELDS.F22_EntryMode, "0010")
             .setField(FIELDS.F24_NII_FunctionCode, "120")
             .setField(FIELDS.F25_POS_ConditionCode, "00")
-            .setField(FIELDS.F41_CA_TerminalID,StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
-            .setField(FIELDS.F42_CA_ID,StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
+            .setField(
+                FIELDS.F41_CA_TerminalID,
+                StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
+            .setField(
+                FIELDS.F42_CA_ID,
+                StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
             .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
             .setField(FIELDS.F64_MAC,"")
             .setHeader("6001278001")
@@ -831,8 +851,12 @@ class SaleTLEActivity : AppCompatActivity() {
             .setField(FIELDS.F22_EntryMode, "0010")
             .setField(FIELDS.F24_NII_FunctionCode, "120")
             .setField(FIELDS.F25_POS_ConditionCode, "00")
-            .setField(FIELDS.F41_CA_TerminalID,StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
-            .setField(FIELDS.F42_CA_ID,StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
+            .setField(
+                FIELDS.F41_CA_TerminalID,
+                StringUtil.hexStringToByteArray(convertStringToHex(tid, false)))
+            .setField(
+                FIELDS.F42_CA_ID,
+                StringUtil.hexStringToByteArray(convertStringToHex(mid, false)))
             .setField(FIELDS.F57_Reserved_National,bit57)
             .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
             .setField(FIELDS.F64_MAC,bit64Mac)
@@ -852,10 +876,12 @@ class SaleTLEActivity : AppCompatActivity() {
             .setField(FIELDS.F22_EntryMode, "0010")
             .setField(FIELDS.F24_NII_FunctionCode, "120")
             .setField(FIELDS.F25_POS_ConditionCode, "00")
-            .setField(FIELDS.F41_CA_TerminalID,
+            .setField(
+                FIELDS.F41_CA_TerminalID,
                 StringUtil.hexStringToByteArray(convertStringToHex(tid, false))
             )
-            .setField(FIELDS.F42_CA_ID,
+            .setField(
+                FIELDS.F42_CA_ID,
                 StringUtil.hexStringToByteArray(convertStringToHex(mid, false))
             )
             .setField(FIELDS.F57_Reserved_National,bit57)
@@ -989,7 +1015,7 @@ class SaleTLEActivity : AppCompatActivity() {
         return _bit64Response
     }
 
-    fun unpackIso(isoMsg: String,field:ArrayList<String>):ArrayList<String>{
+    fun unpackIso(isoMsg: String,field: ArrayList<String>): ArrayList<String> {
         val isoMessageUnpacket: ISOMessage = ISOMessageBuilder.Unpacker()
             .setMessage(isoMsg)
             .build()
@@ -1016,14 +1042,14 @@ class SaleTLEActivity : AppCompatActivity() {
         //builder.setPositiveButton("OK", DialogInterface.OnClickListener(function = x))
         builder.setPositiveButton(getString(R.string.ok),
             DialogInterface.OnClickListener{ dialog, which ->
-            Toast.makeText(applicationContext,android.R.string.ok, Toast.LENGTH_LONG).show()
-            startActivity(Intent(this,MenuActivity::class.java))
-        })
+                Toast.makeText(applicationContext,android.R.string.ok, Toast.LENGTH_LONG).show()
+                startActivity(Intent(this,MenuActivity::class.java))
+            })
         val dialog = builder.create()
         dialog.show()
     }
 
-//    @Throws(ISOException::class, ISOClientException::class, IOException::class)
+    //    @Throws(ISOException::class, ISOClientException::class, IOException::class)
     fun salePacket(STAN: String): ISOMessage? {
         return ISOMessageBuilder.Packer(VERSION.V1987)
             .financial()
@@ -1162,7 +1188,8 @@ class SaleTLEActivity : AppCompatActivity() {
 
                 Thread{
                     accessDatabase()
-                    readStan = saleDAO?.getSale()?.STAN
+//                    readStan = saleDAO?.getSale()?.STAN
+                    readStan = transactionDAO?.getTransaction()?.STAN
                     readFlagReverse = flagReverseDAO?.getFlagReverse()?.flagReverse
                     readStuckReverse = stuckReverseDAO?.getStuckReverse()?.stuckReverse
                     reReversal = reversalDAO?.getReversal()?.isoMsg
@@ -1292,4 +1319,5 @@ class SaleTLEActivity : AppCompatActivity() {
         }
         return String(hex)
     }
+
 }
