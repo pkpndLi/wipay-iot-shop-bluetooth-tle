@@ -67,7 +67,7 @@ class SaleTLEActivity2 : AppCompatActivity() {
     var output1: TextView? = null
     var output2: TextView? = null
     var stan: Int? = null
-    var initialStan: Int? = 0
+    var initialStan: Int? = 9
     var reverseFlag :Boolean? = null
     var reversal: String? = null
     var responseCode: String? = null
@@ -174,12 +174,8 @@ class SaleTLEActivity2 : AppCompatActivity() {
 
         }
 
-//        var androidId: String = Settings.Secure.getString(
-//            contentResolver,
-//            Settings.Secure.ANDROID_ID
-//        )
-
-        LTID = serialNumber()
+//        LTID = serialNumber()
+        LTID = "5528a108"
 
 //         cardNO = "4162026250958064"
 //         cardEXD = "2512"
@@ -226,8 +222,8 @@ class SaleTLEActivity2 : AppCompatActivity() {
             dekKey = "139EB7CE451189AA8E613C0BA77D9045"
             ltwkId = "9227"
 //            stan = 4
-            cardNO = "1111111111111111"
-            cardEXD = "1210"
+            cardNO = "4162026250958064"
+            cardEXD = "2512"
 
             Log.d(log,"...TEST TLE FLOW...")
             Log.e(log,"ltid: " + LTID)

@@ -19,6 +19,7 @@ import com.example.wipay_iot_shop.cypto.iRSA
 import com.example.wipay_iot_shop.transaction.ResponseDao
 import com.example.wipay_iot_shop.transaction.ResponseEntity
 import com.example.wipay_iot_shop.transaction.TransactionDao
+import com.example.wipay_iot_shop.transaction.TransactionEntity
 import com.imohsenb.ISO8583.builders.ISOClientBuilder
 import com.imohsenb.ISO8583.builders.ISOMessageBuilder
 import com.imohsenb.ISO8583.entities.ISOMessage
@@ -80,25 +81,7 @@ class BatchUploadTLEActivity : AppCompatActivity() {
     var responseCount: Int? = 0
     var batchCount: Int? = 0
 
-    //    private val HOST = "192.168.43.195"
-//    var PORT = 5000
 
-//    private val HOST = "192.168.68.195"
-//    private val HOST = "192.168.68.225"
-//    var PORT = 5000
-//    private val HOST = "192.168.68.119"
-//    var PORT = 5001
-
-//    private val HOST = "192.168.43.24"
-//    var PORT = 3000
-//    private val HOST = "203.148.160.47"
-//    var PORT = 7500
-
-    private val HOST = "192.168.178.187"
-    var PORT = 5000
-
-//    private val HOST = "192.168.68.107"
-//    var PORT = 3000
 
     //TLE config params
     val rsa = iRSA()
@@ -124,6 +107,32 @@ class BatchUploadTLEActivity : AppCompatActivity() {
     var reserved = "00000000"
     var _bit64:ByteArray = ByteArray(8)
     var _bit57 = ""
+    var batchUploadOri = ""
+
+    //    private val HOST = "192.168.43.195"
+//    var PORT = 5000
+
+//    private val HOST = "192.168.68.195"
+//    private val HOST = "192.168.68.225"
+//    var PORT = 5000
+//    private val HOST = "192.168.68.119"
+//    var PORT = 5001
+
+//    private val HOST = "192.168.43.24"
+//    var PORT = 3000
+//    private val HOST = "203.148.160.47"
+//    var PORT = 7500
+
+//    private val HOST = "192.168.178.187"
+//    var PORT = 5000
+
+//    private val HOST = "192.168.68.107"
+//    var PORT = 3000
+
+//Tle host
+    private val HOST = "223.27.234.243"
+    var PORT = 5000
+
 
     private val HEX_UPPER = "0123456789ABCDEF".toCharArray()
     private val HEX_LOWER = "0123456789abcdef".toCharArray()
@@ -137,37 +146,41 @@ class BatchUploadTLEActivity : AppCompatActivity() {
             endId = getIntExtra("endId",2)
         }
 
+//        startId = 1
+//        endId = 3
+
         sp = getSharedPreferences(MY_PREFS, MODE_PRIVATE)
         makKey = sp.getString("MAK",null).toString()
         dekKey = sp.getString("DEK",null).toString()
         ltwkId = sp.getString("LTWK_ID",null).toString()
 //        startId = sp.getInt("startId",1)
-        LTID = serialNumber()
-
-        setDialogQueryTransaction("","Wait a moment, the system is processing...")
-
         makKey = "3991E2A306727C99B85BB694E4AD7F54"
         dekKey = "139EB7CE451189AA8E613C0BA77D9045"
         ltwkId = "9227"
+//        LTID = serialNumber()
+        LTID = "5528a108"
+        setDialogQueryTransaction("","Wait a moment, the system is processing...")
 
-        saleStan ="1"
-        time = "135000"
-        date = "0803"
-        cardNO = "4162026250958064"
-        cardEXD = "2512"
-        amount = "200"
-        responseMsg = "3030"
-        batchStan = 1
 
-        var sale = "600120800002007024058000C000041644444444444444440000000000001000000011062409001001200032323232323232323232323232323232323232323232320006303030343839"
-        var saleResponse = "60800001200210303801000E80000400000000000010000000110610193806170120544553543130303031313036343931383932303032323232323232320006303030343839"
-        isoUnpackResponse(saleResponse)
-        isoUnpackSale(sale)
 
-        var batchUploadOri = batchUploadWithMac(pccCode).toString()
-        var batchUploagTle = batchUploadTlePacket(batchUploadOri,pccCode)
-        Log.e(log,"batchUploadOri: " + batchUploadOri)
-        Log.e(log,"batchUploagTle: " + batchUploagTle.toString())
+//        saleStan ="1"
+//        time = "135000"
+//        date = "0803"
+//        cardNO = "4162026250958064"
+//        cardEXD = "2512"
+//        amount = "200"
+//        responseMsg = "3030"
+//        batchStan = 1
+//
+//        var sale = "600120800002007024058000C000041644444444444444440000000000001000000011062409001001200032323232323232323232323232323232323232323232320006303030343839"
+//        var saleResponse = "60800001200210303801000E80000400000000000010000000110610193806170120544553543130303031313036343931383932303032323232323232320006303030343839"
+//        isoUnpackResponse(saleResponse)
+//        isoUnpackSale(sale)
+//
+//        batchUploadOri = batchUploadWithMac(pccCode).toString()
+//        var batchUploagTle = batchUploadTlePacket(batchUploadOri,pccCode)
+//        Log.e(log,"batchUploadOri: " + batchUploadOri)
+//        Log.e(log,"batchUploagTle: " + batchUploagTle.toString())
 //        Log.e(log,"bit60: " + buildDE60_OriginalData(MTI,saleStan))
 //        Log.e(log,"debug batchUpload: " + batchUpload(pccCode))
     }
@@ -424,15 +437,18 @@ class BatchUploadTLEActivity : AppCompatActivity() {
         Log.w(log, "response code:"+ responseCode)
 
         var stan = codeUnpack(responseMsg.toString(),11).toString()
-        var batchUpload  = SaleEntity(null,null,stan.toInt())
+//        var batchUpload  = SaleEntity(null,null,stan.toInt())
+        var batchUpload  = TransactionEntity(null,null,null,stan.toInt())
         var responseBatch = ResponseEntity(null,null)
 
         Thread{
 
             accessDatabase()
-            saleDAO?.insertSale(batchUpload)
+//            saleDAO?.insertSale(batchUpload)
+            transactionDAO?.insertTransaction(batchUpload)
             responseDAO?.insertResponseMsg(responseBatch)
-            readStan = saleDAO?.getSale()?.STAN
+//            readStan = saleDAO?.getSale()?.STAN
+            readStan = transactionDAO?.getTransaction()?.STAN
             readResponseMsg = responseDAO?.getResponseMsg()?.responseMsg
 //                Log.i("log_tag","saveTransaction :  " + )
             Log.w(log,"saveSTAN[${batchCount}] : " + readStan)
@@ -537,12 +553,11 @@ class BatchUploadTLEActivity : AppCompatActivity() {
                 Toast.makeText(applicationContext,android.R.string.ok, Toast.LENGTH_SHORT).show()
 
                 Thread{
-//                    buildBatchUploadPacket()
                     accessDatabase()
 //                    readStan = saleDAO?.getSale()?.STAN
-                    readStan = saleDAO?.getSale()?.STAN
+                    readStan = transactionDAO?.getTransaction()?.STAN
 //                    readId = saleDAO?.getSale()?._id
-                    readId = saleDAO?.getSale()?._id
+                    readId = transactionDAO?.getTransaction()?._id
 
 //        endId = readId
                     batchStan = readStan
@@ -551,7 +566,6 @@ class BatchUploadTLEActivity : AppCompatActivity() {
                         batchStan = 1
                     }
 
-//                    endId = 3
                     var setPccCode = pccCode
                     var batchUploadPacket: String = ""
 
@@ -562,7 +576,8 @@ class BatchUploadTLEActivity : AppCompatActivity() {
                     for(n in startId?.rangeTo(endId!!)!!){
 //                    for(n in startId..endId!!){
                         readResponseMsg = responseDAO?.getResponseMsgWithID(n)?.responseMsg
-                        readIsoMsg = saleDAO?.getSaleWithID(n)?.isoMsg
+//                        readIsoMsg = saleDAO?.getSaleWithID(n)?.isoMsg
+                        readIsoMsg = transactionDAO?.getTransactionWithID(n)?.isoMsg
 
                         Log.w(log,"isoResponseMsg[${n}]: "+ readResponseMsg)
                         Log.w(log,"isoMsg[${n}]: "+ readIsoMsg)
@@ -577,7 +592,10 @@ class BatchUploadTLEActivity : AppCompatActivity() {
                                 setPccCode = lastPccCode                    //set bit 3
                             }
 
-                            batchUploadPacket = batchUpload(setPccCode).toString()
+//                            batchUploadPacket = batchUpload(setPccCode).toString()
+                            batchUploadOri = batchUploadWithMac(setPccCode).toString()
+                            batchUploadPacket = batchUploadTlePacket(batchUploadOri,pccCode).toString()
+
                             batchUploadList.add(batchUploadPacket)
 
                             Log.i(log, "batchStan: " + batchStan)

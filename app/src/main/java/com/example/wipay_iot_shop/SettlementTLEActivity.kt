@@ -132,6 +132,7 @@ class SettlementTLEActivity : AppCompatActivity() {
     var lastSettlementFlag: Boolean? = null
     var batchStan: Int? = null
     var settlementPacketOri = ""
+    var lastSettlementPacket: ISOMessage? = null
 
 
     //TLE config params
@@ -167,7 +168,8 @@ class SettlementTLEActivity : AppCompatActivity() {
         setContentView(R.layout.activity_settlement_tleactivity)
 
         Log.d(log,"on settlementActivity.")
-        LTID = serialNumber()
+//        LTID = serialNumber()
+        LTID = "5528a108"
         saleReport = findViewById(R.id.SaleReportActivity)
 
         var confirmBtn = findViewById<Button>(R.id.confirmBtn)
@@ -194,9 +196,9 @@ class SettlementTLEActivity : AppCompatActivity() {
         Log.w(log,"startId: " + startId)
 
         //for test
-//        makKey = "3991E2A306727C99B85BB694E4AD7F54"
-//        dekKey = "139EB7CE451189AA8E613C0BA77D9045"
-//        ltwkId = "9227"
+        makKey = "3991E2A306727C99B85BB694E4AD7F54"
+        dekKey = "139EB7CE451189AA8E613C0BA77D9045"
+        ltwkId = "9227"
 
         if(oldStartId == startId){
             setDialog("Processing failed.","There has never been any transaction.")//
@@ -211,7 +213,9 @@ class SettlementTLEActivity : AppCompatActivity() {
             stan = batchStan?.plus(1)
             batchTotals = sp.getString("batchTotals","11111111111")
             Log.e(log,"stan: "+ stan + "," + "batchTotals: " + batchTotals)
-            Log.e(log,"send lastSettlement Packet: " + lastSettlementPacket())
+//            Log.e(log,"send lastSettlement Packet: " + lastSettlementPacket())
+            lastSettlementPacket = lastSettlementTlePacket(lastSettlementPacketWithMac().toString())
+            Log.e(log,"send lastSettlement Packet: " + lastSettlementPacket)
             setDialogNormal("","please confirm transaction again.")
 
         }else{
@@ -223,7 +227,7 @@ class SettlementTLEActivity : AppCompatActivity() {
 
             if(lastSettlementFlag == true){
 
-                sendPacket(lastSettlementPacket())
+                sendPacket(lastSettlementPacket)
 
                 val editor: SharedPreferences.Editor = sp.edit()
                 editor.putBoolean("lastSettlementFlag", false)
@@ -277,13 +281,29 @@ class SettlementTLEActivity : AppCompatActivity() {
         _bit64 = bit64Mac(isoMsg,makKey)
         Log.e(log,"_bit64: " + _bit64)
         var tlvLen = "0000"
-        _bit57 = bit57Ver4(indicator,version,acqID,LTID,encryptMethod,ltwkId,encryptCounter,tlvLen)
+        _bit57 = bit57Ver4(indicator,version,acqID,LTID,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved)
         Log.e(log,"_bit57: " + _bit57)
         var tlePacket = settlementPacketTle(hexStringToByteArray(_bit57)!!,_bit64)
         Log.e(log,"settlementTleMsg: " + tlePacket)
 
         return tlePacket!!
     }
+
+    fun lastSettlementTlePacket(isoMsg: String):ISOMessage{
+
+        Log.d(log,"...build tlePacket...")
+        Log.e(log,"original packet: " + isoMsg)
+        _bit64 = bit64Mac(isoMsg,makKey)
+        Log.e(log,"_bit64: " + _bit64)
+        var tlvLen = "0000"
+        _bit57 = bit57Ver4(indicator,version,acqID,LTID,encryptMethod,ltwkId,encryptCounter,tlvLen,reserved)
+        Log.e(log,"_bit57: " + _bit57)
+        var tlePacket = lastSettlementPacketTle(hexStringToByteArray(_bit57)!!,_bit64)
+        Log.e(log,"settlementTleMsg: " + tlePacket)
+
+        return tlePacket!!
+    }
+
 
     fun settlementPacketWithMac(): ISOMessage? {
         return ISOMessageBuilder.Packer(VERSION.V1987)
@@ -299,6 +319,24 @@ class SettlementTLEActivity : AppCompatActivity() {
             .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
             .setField(FIELDS.F63_Reserved_Private,hexStringToByteArray(batchTotals.toString()))
             .setField(FIELDS.F64_MAC,"")
+            .setHeader("6001278001")
+            .build()
+    }
+
+    fun lastSettlementPacketWithMac(): ISOMessage? {
+        return ISOMessageBuilder.Packer(VERSION.V1987)
+            .reconciliation()
+            .setLeftPadding(0x00.toByte())
+            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
+            .processCode("960000")
+            .setField(FIELDS.F11_STAN, stan.toString())
+            .setField(FIELDS.F24_NII_FunctionCode, "120")
+            .setField(FIELDS.F41_CA_TerminalID,hexStringToByteArray(convertStringToHex(tid, false)!!))
+            .setField(FIELDS.F42_CA_ID,hexStringToByteArray(convertStringToHex(mid, false)!!))
+            .setField(FIELDS.F60_Reserved_National, batchNumber)
+            .setField(FIELDS.F62_Reserved_Private, hexStringToByteArray("303030343841"))
+            .setField(FIELDS.F63_Reserved_Private, hexStringToByteArray(batchTotals.toString()))
+            .setField(FIELDS.F64_MAC, "")
             .setHeader("6001278001")
             .build()
     }
@@ -333,7 +371,7 @@ class SettlementTLEActivity : AppCompatActivity() {
         return _mac
     }
 
-    fun bit57Ver4(indicator:String,version:String,acqID:String,tid:String,encryptMethod:String,ltwkId:String,encryptCount:String,TLVLen:String):String{
+    fun bit57Ver4(indicator:String,version:String,acqID:String,tid:String,encryptMethod:String,ltwkId:String,encryptCount:String,TLVLen:String,reserved:String):String{
 
         var tlvLen = ("0000" + TLVLen).substring(TLVLen.length)
 //        var tlvLen = "0015"
@@ -342,10 +380,10 @@ class SettlementTLEActivity : AppCompatActivity() {
         Log.e(log,"bit57Data: " + data)
         var hexData = convertStringToHex(data,false)
         var tlvLenHex = convertStringToHex(tlvLen,false)
-
+        var reserved = convertStringToHex(reserved,false)
 //        var bit57Msg = hexData + hexStringToByteArray(tlvLenHex) + reserved + cipherText
 
-        var _bit57 = hexData + tlvLen
+        var _bit57 = hexData + tlvLen + reserved
         return _bit57
     }
 
@@ -355,6 +393,25 @@ class SettlementTLEActivity : AppCompatActivity() {
             .setLeftPadding(0x00.toByte())
             .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
             .processCode("920000")
+            .setField(FIELDS.F11_STAN, stan.toString())
+            .setField(FIELDS.F24_NII_FunctionCode, "120")
+            .setField(FIELDS.F41_CA_TerminalID,hexStringToByteArray(convertStringToHex(tid, false)!!))
+            .setField(FIELDS.F42_CA_ID,hexStringToByteArray(convertStringToHex(mid, false)!!))
+            .setField(FIELDS.F57_Reserved_National,bit57)
+            .setField(FIELDS.F60_Reserved_National,batchNumber)
+            .setField(FIELDS.F62_Reserved_Private,hexStringToByteArray("303030343841"))
+            .setField(FIELDS.F63_Reserved_Private,hexStringToByteArray(batchTotals.toString()))
+            .setField(FIELDS.F64_MAC,bit64Mac)
+            .setHeader("6001278001")
+            .build()
+    }
+
+    fun lastSettlementPacketTle(bit57:ByteArray,bit64Mac:ByteArray): ISOMessage? {
+        return ISOMessageBuilder.Packer(VERSION.V1987)
+            .reconciliation()
+            .setLeftPadding(0x00.toByte())
+            .mti(MESSAGE_FUNCTION.Request, MESSAGE_ORIGIN.Acquirer)
+            .processCode("960000")
             .setField(FIELDS.F11_STAN, stan.toString())
             .setField(FIELDS.F24_NII_FunctionCode, "120")
             .setField(FIELDS.F41_CA_TerminalID,hexStringToByteArray(convertStringToHex(tid, false)!!))
